@@ -1,0 +1,29 @@
+<idea-plugin>
+    <id>com.sample.phpstormpluginviewvariable</id>
+    <name>PHP Controller-View Resolver</name>
+    <vendor>Your Company</vendor>
+    <description>
+        <![CDATA[
+        Resolves variables set in Controller and used in View files.
+        Provides code navigation and type completion for variables passed from controllers to views.
+        ]]>
+    </description>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.jetbrains.php</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- コード補完のコントリビューター -->
+<!--        <completion.contributor language="PHP" implementationClass="com.sample.ViewVariableCompletionContributor"/>-->
+
+    </extensions>
+
+    <extensions defaultExtensionNs="com.intellij.psi">
+<!--        <referenceContributor implementation="com.sample.ControllerVariableReferenceContributor" language="PHP"/>-->
+        <referenceContributor implementation="com.sample.phpstormpluginviewvariable.ViewReferenceContributor"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="com.jetbrains.php">
+        <typeProvider4 implementation="com.sample.phpstormpluginviewvariable.ViewTypeProvider"/>
+        <predefinedVariableProvider implementation="com.sample.phpstormpluginviewvariable.ViewPredefinedVariableProvider"/>
+    </extensions>
+</idea-plugin>
