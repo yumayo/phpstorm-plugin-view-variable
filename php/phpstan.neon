@@ -1,0 +1,13 @@
+parameters:
+    paths:
+        - libraries
+        - modules
+    level: 10
+
+services:
+    # -
+    #     class: App\Libraries\PHPStan\Rules\DumpVariableTypeRule
+    #     tags: [phpstan.rules.rule]
+    -
+        class: App\Libraries\PHPStan\Rules\SetVarArgumentTypeRule
+        tags: [phpstan.rules.rule]
