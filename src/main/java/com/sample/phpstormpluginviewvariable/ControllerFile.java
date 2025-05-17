@@ -66,12 +66,21 @@ public class ControllerFile {
         }
 
         // コントローラーファイル内の指定されたアクション名のメソッド内のsetVarメソッド呼び出しを検索
-        return PsiTreeUtil.findChildrenOfType(
-                PsiTreeUtil.findChildrenOfType(controllerFile, Method.class).stream()
-                        .filter(method -> actionName.equals(method.getName()))
-                        .findFirst()
-                        .orElse(null),
-                MethodReference.class
-        );
+        Method actionMethod = PsiTreeUtil.findChildrenOfType(controllerFile, Method.class).stream()
+            .filter(method -> actionName.equals(method.getName()))
+            .findFirst()
+            .orElse(null);
+
+        if (actionMethod == null) {
+            return variables;
+        }
+
+        for (MethodReference methodRef : PsiTreeUtil.findChildrenOfType(actionMethod, MethodReference.class)) {
+            // 参照元ファイルがcontrollerFileと一致する場合のみ追加
+            if (methodRef.getContainingFile() == controllerFile) {
+                variables.add(methodRef);
+            }
+        }
+        return variables;
     }
 }
