@@ -36,12 +36,12 @@ public class ControllerFile {
         String actionName = viewFileName.replace(".php", "") + "Action";
         Log.info("Action name: " + actionName);
 
-        int viewIndex = viewPath.indexOf("/View/");
+        int viewIndex = viewPath.indexOf("/views/");
         if (viewIndex == -1) {
             Log.info("Not a view file: " + viewPath);
             return variables;
         }
-        String viewSubPath = viewPath.substring(viewIndex + "/View/".length());
+        String viewSubPath = viewPath.substring(viewIndex + "/views/".length());
         Log.info("View sub path: " + viewSubPath);
 
         String[] pathParts = viewSubPath.split("/");

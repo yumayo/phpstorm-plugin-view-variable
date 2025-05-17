@@ -45,7 +45,7 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
             return false;
         }
         String filePath = virtualFile.getPath();
-        return filePath.contains("/View/") && filePath.endsWith(".php");
+        return filePath.contains("/views/") && filePath.endsWith(".php");
     }
 
     /**
