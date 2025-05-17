@@ -12,13 +12,10 @@
     <depends>com.jetbrains.php</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- コード補完のコントリビューター -->
-<!--        <completion.contributor language="PHP" implementationClass="com.sample.ViewVariableCompletionContributor"/>-->
         <usageTypeProvider implementation="com.sample.phpstormpluginviewvariable.SetVarUsageTypeProvider"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.psi">
-<!--        <referenceContributor implementation="com.sample.ControllerVariableReferenceContributor" language="PHP"/>-->
         <referenceContributor implementation="com.sample.phpstormpluginviewvariable.ViewReferenceContributor"/>
     </extensions>
 
@@ -26,4 +23,5 @@
         <typeProvider4 implementation="com.sample.phpstormpluginviewvariable.ViewTypeProvider"/>
         <predefinedVariableProvider implementation="com.sample.phpstormpluginviewvariable.ViewPredefinedVariableProvider"/>
     </extensions>
+
 </idea-plugin>
