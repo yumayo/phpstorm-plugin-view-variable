@@ -14,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * ViewStringLiteralExpressionReference
@@ -92,21 +94,101 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
 
     /**
      * 指定した要素がこの参照の対象かどうかを判定する。
+     * 対応するコントローラーのアクションとビューファイルに限定して判定を行う。
      */
     @Override
     public boolean isReferenceTo(@NotNull PsiElement element) {
-        if (element instanceof Variable) {
-            Variable var = (Variable) element;
-            return var.getName().equals(myElement.getContents());
+        if (!(element instanceof Variable)) {
+            return false;
         }
+
+        Variable var = (Variable) element;
+        String varName = var.getName();
+        String targetVarName = myElement.getContents();
+
+        if (!varName.equals(targetVarName)) {
+            return false;
+        }
+
+        // 変数がビューファイル内にあるか確認
+        PsiFile viewFile = var.getContainingFile();
+        if (viewFile == null) {
+            return false;
+        }
+
+        // 現在の要素がコントローラーファイル内にあるか確認
+        PsiFile controllerFile = myElement.getContainingFile();
+        if (controllerFile == null) {
+            return false;
+        }
+
+        // ビューファイルとコントローラーファイルの対応関係を確認
+        Project project = myElement.getProject();
+        VirtualFile viewVirtualFile = viewFile.getVirtualFile();
+        if (viewVirtualFile == null) {
+            return false;
+        }
+
+        // コントローラーのメソッド参照を取得
+        Collection<MethodReference> methodRefs = ControllerFile.getMethodReferences(viewVirtualFile, project);
+        
+        // 現在の要素がsetVarの第一引数として使用されているか確認
+        for (MethodReference methodRef : methodRefs) {
+            if (!"setVar".equals(methodRef.getName())) {
+                continue;
+            }
+
+            PsiElement[] args = methodRef.getParameters();
+            if (args.length < 1) {
+                continue;
+            }
+
+            if (args[0] == myElement) {
+                return true;
+            }
+        }
+
         return false;
     }
 
     /**
-     * 補完候補の配列を返す（未使用）。
+     * 補完候補の配列を返す。
+     * 対応するコントローラーのアクション内のsetVarの第一引数のみを候補として提供する。
      */
     @Override
     public Object @NotNull [] getVariants() {
-        return EMPTY_ARRAY;
+        Project project = myElement.getProject();
+        PsiFile controllerFile = myElement.getContainingFile();
+        if (controllerFile == null) {
+            return EMPTY_ARRAY;
+        }
+
+        VirtualFile controllerVirtualFile = controllerFile.getVirtualFile();
+        if (controllerVirtualFile == null) {
+            return EMPTY_ARRAY;
+        }
+
+        // コントローラーのメソッド参照を取得
+        Collection<MethodReference> methodRefs = ControllerFile.getMethodReferences(controllerVirtualFile, project);
+        Set<String> variants = new HashSet<>();
+
+        // setVarの第一引数を収集
+        for (MethodReference methodRef : methodRefs) {
+            if (!"setVar".equals(methodRef.getName())) {
+                continue;
+            }
+
+            PsiElement[] args = methodRef.getParameters();
+            if (args.length < 1) {
+                continue;
+            }
+
+            if (args[0] instanceof StringLiteralExpression) {
+                StringLiteralExpression keyArg = (StringLiteralExpression) args[0];
+                variants.add(keyArg.getContents());
+            }
+        }
+
+        return variants.toArray();
     }
 }
