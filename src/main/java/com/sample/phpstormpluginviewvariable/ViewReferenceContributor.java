@@ -1,10 +1,13 @@
 package com.sample.phpstormpluginviewvariable;
 
 import com.intellij.patterns.PlatformPatterns;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReferenceContributor;
 import com.intellij.psi.PsiReferenceRegistrar;
 import com.jetbrains.php.lang.psi.elements.StringLiteralExpression;
 import com.jetbrains.php.lang.psi.elements.Variable;
+import com.jetbrains.php.lang.psi.elements.PhpExpression;
+import com.jetbrains.php.lang.psi.elements.impl.VariableImpl;
 
 /**
  * ViewReferenceContributor
@@ -20,16 +23,16 @@ public class ViewReferenceContributor extends PsiReferenceContributor {
      */
     @Override
     public void registerReferenceProviders(PsiReferenceRegistrar registrar) {
+        // すべてのPsiElementに対する参照解決（デバッグ用）
+        registrar.registerReferenceProvider(
+                PlatformPatterns.psiElement(PsiElement.class),
+                new AllPsiElementReferenceProvider()
+        );
+
         // setVarの第一引数に対する参照解決
         registrar.registerReferenceProvider(
                 PlatformPatterns.psiElement(StringLiteralExpression.class),
                 new ViewVariableStringLiteralExpressionReferenceProvider()
-        );
-
-        // Viewファイル内の変数に対する参照解決
-        registrar.registerReferenceProvider(
-                PlatformPatterns.psiElement(Variable.class),
-                new ViewVariableReferenceProvider()
         );
     }
 }
