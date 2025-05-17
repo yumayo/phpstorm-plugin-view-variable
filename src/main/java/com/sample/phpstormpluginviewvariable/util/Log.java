@@ -1,4 +1,4 @@
-package com.sample.phpstormpluginviewvariable;
+package com.sample.phpstormpluginviewvariable.util;
 
 import com.intellij.openapi.diagnostic.Logger;
 
