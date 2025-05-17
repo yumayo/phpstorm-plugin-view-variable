@@ -16,7 +16,7 @@
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.psi">
-        <referenceContributor implementation="com.sample.phpstormpluginviewvariable.ViewReferenceContributor"/>
+        <referenceContributor implementation="com.sample.phpstormpluginviewvariable.reference.ViewReferenceContributor"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.jetbrains.php">
