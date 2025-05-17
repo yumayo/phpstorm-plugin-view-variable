@@ -14,7 +14,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <!-- コード補完のコントリビューター -->
 <!--        <completion.contributor language="PHP" implementationClass="com.sample.ViewVariableCompletionContributor"/>-->
-
+        <usageTypeProvider implementation="com.sample.phpstormpluginviewvariable.SetVarUsageTypeProvider"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.psi">
