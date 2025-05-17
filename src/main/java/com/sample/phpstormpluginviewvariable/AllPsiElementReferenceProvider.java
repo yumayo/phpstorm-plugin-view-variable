@@ -4,6 +4,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceProvider;
 import com.intellij.util.ProcessingContext;
+import com.sample.phpstormpluginviewvariable.util.Log;
 import org.jetbrains.annotations.NotNull;
 
 public class AllPsiElementReferenceProvider extends PsiReferenceProvider {
