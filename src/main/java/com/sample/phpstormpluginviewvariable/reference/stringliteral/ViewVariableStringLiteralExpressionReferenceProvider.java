@@ -1,4 +1,4 @@
-package com.sample.phpstormpluginviewvariable;
+package com.sample.phpstormpluginviewvariable.reference.stringliteral;
 
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;

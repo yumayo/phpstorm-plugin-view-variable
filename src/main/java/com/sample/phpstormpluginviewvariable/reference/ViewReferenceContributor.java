@@ -1,13 +1,12 @@
-package com.sample.phpstormpluginviewvariable;
+package com.sample.phpstormpluginviewvariable.reference;
 
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReferenceContributor;
 import com.intellij.psi.PsiReferenceRegistrar;
 import com.jetbrains.php.lang.psi.elements.StringLiteralExpression;
-import com.jetbrains.php.lang.psi.elements.Variable;
-import com.jetbrains.php.lang.psi.elements.PhpExpression;
-import com.jetbrains.php.lang.psi.elements.impl.VariableImpl;
+import com.sample.phpstormpluginviewvariable.reference.debug.AllPsiElementReferenceProvider;
+import com.sample.phpstormpluginviewvariable.reference.stringliteral.ViewVariableStringLiteralExpressionReferenceProvider;
 
 /**
  * ViewReferenceContributor

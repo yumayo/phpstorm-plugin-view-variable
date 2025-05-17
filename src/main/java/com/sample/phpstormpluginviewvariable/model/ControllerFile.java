@@ -1,4 +1,4 @@
-package com.sample.phpstormpluginviewvariable;
+package com.sample.phpstormpluginviewvariable.model;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
