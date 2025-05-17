@@ -19,6 +19,12 @@ public class ControllerFile {
 
         // ビューファイルのパスからコントローラーファイルのパスを推測
         String viewPath = viewVirtualFile.getPath();
+        Log.info("View path: " + viewPath);
+
+        // ビューファイル名からアクション名を取得
+        String viewFileName = viewVirtualFile.getName();
+        String actionName = viewFileName.replace(".php", "") + "Action";
+        Log.info("Action name: " + actionName);
 
         int viewIndex = viewPath.indexOf("/View/");
         if (viewIndex == -1) {
@@ -59,10 +65,10 @@ public class ControllerFile {
             return variables;
         }
 
-        // コントローラーファイル内のsetVarメソッド呼び出しを検索
+        // コントローラーファイル内の指定されたアクション名のメソッド内のsetVarメソッド呼び出しを検索
         return PsiTreeUtil.findChildrenOfType(
                 PsiTreeUtil.findChildrenOfType(controllerFile, Method.class).stream()
-                        .filter(method -> "indexAction".equals(method.getName()))
+                        .filter(method -> actionName.equals(method.getName()))
                         .findFirst()
                         .orElse(null),
                 MethodReference.class

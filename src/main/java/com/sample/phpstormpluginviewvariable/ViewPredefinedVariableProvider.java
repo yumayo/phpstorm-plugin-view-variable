@@ -24,7 +24,7 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
         Log.info("Processing PHP file: " + fileName);
 
         // ビューファイルかどうかを判断
-        if (isViewFile(fileName)) {
+        if (isViewFile(phpFile)) {
             return getViewVariables(phpFile);
         }
 
@@ -32,12 +32,16 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
         return Set.of();
     }
 
-    private boolean isViewFile(String fileName) {
-        return fileName.contains("/View/") || fileName.endsWith(".php");
+    private boolean isViewFile(PhpFile phpFile) {
+        VirtualFile virtualFile = phpFile.getVirtualFile();
+        if (virtualFile == null) {
+            return false;
+        }
+        String filePath = virtualFile.getPath();
+        return filePath.contains("/View/") && filePath.endsWith(".php");
     }
 
     private Set<CharSequence> getViewVariables(PhpFile viewFile) {
-
         Set<CharSequence> variables = new HashSet<>();
 
         var methodRefs = ControllerFile.getMethodReferences(viewFile.getVirtualFile(), viewFile.getProject());
@@ -65,6 +69,4 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
 
         return variables;
     }
-
-
 }
