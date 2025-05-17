@@ -59,7 +59,7 @@ public class ControllerFile {
             return variables;
         }
 
-        String controllerPath = viewPath.substring(0, viewIndex) + "/Controller/" + controllerDir + controllerFileName;
+        String controllerPath = viewPath.substring(0, viewIndex) + "/Controller/" + controllerDir + controllerFileName.substring(0, 1).toUpperCase() + controllerFileName.substring(1);
         Log.info("Controller path: " + controllerPath);
 
         VirtualFile controllerVirtualFile = LocalFileSystem.getInstance().findFileByPath(controllerPath);
