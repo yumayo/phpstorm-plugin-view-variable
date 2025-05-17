@@ -61,7 +61,7 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
 
         String filePath = currentFile.getVirtualFile().getPath();
         boolean isControllerFile = filePath.contains("/Controller/");
-        boolean isViewFile = filePath.contains("/View/");
+        boolean isViewFile = filePath.contains("/views/");
 
         if (isControllerFile) {
             // コントローラーファイルからビューファイルへのジャンプ
@@ -107,7 +107,7 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
         }
 
         // Viewファイルのパスを組み立て
-        String viewPath = controllerPath.substring(0, controllerPath.indexOf("/Controller/")) + "/View/";
+        String viewPath = controllerPath.substring(0, controllerPath.indexOf("/Controller/")) + "/views/";
         if (!subDir.isEmpty()) {
             viewPath += subDir + "/";
         }
@@ -142,7 +142,7 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
     private PsiElement resolveToControllerFile(PsiFile viewFile, String varName, Project project) {
         // ビューファイルのパスからコントローラーファイルのパスを推測
         String viewPath = viewFile.getVirtualFile().getPath();
-        String controllerPath = viewPath.replace("/View/", "/Controller/");
+        String controllerPath = viewPath.replace("/views/", "/Controller/");
         controllerPath = controllerPath.replace(".php", "Controller.php");
 
         VirtualFile controllerVirtualFile = LocalFileSystem.getInstance().findFileByPath(controllerPath);

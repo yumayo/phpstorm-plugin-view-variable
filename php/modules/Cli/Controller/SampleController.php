@@ -13,4 +13,9 @@ class SampleController extends Controller
         $floatVar = 3.14;
         $this->setVar('sum', $intVar + $floatVar);
     }
+
+    public function testAction(): void
+    {
+        $this->setVar('value', 3.14);
+    }
 }

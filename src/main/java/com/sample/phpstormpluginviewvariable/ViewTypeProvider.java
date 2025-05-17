@@ -70,7 +70,7 @@ public class ViewTypeProvider implements PhpTypeProvider4 {
         }
         
         String filePath = virtualFile.getPath();
-        return filePath.contains("/View/") && filePath.endsWith(".php");
+        return filePath.contains("/views/") && filePath.endsWith(".php");
     }
 
     /**
