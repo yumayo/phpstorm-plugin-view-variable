@@ -29,7 +29,6 @@ public class ViewTypeProvider implements PhpTypeProvider4 {
     @Nullable
     @Override
     public PhpType getType(PsiElement psiElement) {
-
         Log.info("getType: " + psiElement);
 
         if (!(psiElement instanceof Variable)) {
@@ -58,7 +57,7 @@ public class ViewTypeProvider implements PhpTypeProvider4 {
         }
         
         String filePath = virtualFile.getPath();
-        return filePath.contains("/View/") || filePath.endsWith(".php");
+        return filePath.contains("/View/") && filePath.endsWith(".php");
     }
 
     private PhpType inferVariableTypeFromController(Variable variable) {
@@ -79,7 +78,7 @@ public class ViewTypeProvider implements PhpTypeProvider4 {
             return null;
         }
 
-        // ビューファイルのパスからコントローラーファイルのパスを推測
+        // ビューファイルに対応するコントローラーのメソッド参照を取得
         var methodRefs = ControllerFile.getMethodReferences(viewVirtualFile, project);
 
         for (MethodReference methodRef : methodRefs) {
@@ -119,17 +118,13 @@ public class ViewTypeProvider implements PhpTypeProvider4 {
 
     @Override
     public @Nullable PhpType complete(String s, Project project) {
-
         Log.info("complete: " + s);
-
         return null; // 実装省略
     }
 
     @Override
     public Collection<? extends PhpNamedElement> getBySignature(String s, Set<String> set, int i, Project project) {
-
         Log.info("getBySignature: " + s);
-
         return null; // 実装省略
     }
 }
