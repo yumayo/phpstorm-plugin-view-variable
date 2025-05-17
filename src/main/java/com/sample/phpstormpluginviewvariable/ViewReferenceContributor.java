@@ -16,13 +16,20 @@ public class ViewReferenceContributor extends PsiReferenceContributor {
     /**
      * ReferenceProviderの登録処理。
      * StringLiteralExpressionに対してViewStringLiteralExpressionReferenceProviderを登録する。
+     * また、Variableに対してViewVariableReferenceProviderを登録する。
      */
     @Override
     public void registerReferenceProviders(PsiReferenceRegistrar registrar) {
-
+        // setVarの第一引数に対する参照解決
         registrar.registerReferenceProvider(
                 PlatformPatterns.psiElement(StringLiteralExpression.class),
                 new ViewVariableStringLiteralExpressionReferenceProvider()
+        );
+
+        // Viewファイル内の変数に対する参照解決
+        registrar.registerReferenceProvider(
+                PlatformPatterns.psiElement(Variable.class),
+                new ViewVariableReferenceProvider()
         );
     }
 }
