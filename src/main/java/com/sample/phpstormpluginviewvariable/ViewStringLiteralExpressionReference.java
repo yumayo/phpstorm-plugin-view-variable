@@ -15,6 +15,11 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 
+/**
+ * ViewStringLiteralExpressionReference
+ * Viewファイル内の文字列リテラル（setVarの第一引数や変数名）に対する参照解決（Go to Declaration等）を実装するクラス。
+ * 例：setVar('sum', ...)やView内の$sumなどの参照元・参照先の解決を担当。
+ */
 public class ViewStringLiteralExpressionReference extends PsiReferenceBase<StringLiteralExpression> {
     private static final Object[] EMPTY_ARRAY = new Object[0];
 
@@ -22,9 +27,12 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
         super(element);
     }
 
+    /**
+     * 参照解決（Go to Declaration等）を実装。
+     * 変数名やsetVarの第一引数から、対応する変数宣言やsetVar呼び出しを解決する。
+     */
     @Override
     public @Nullable PsiElement resolve() {
-
         Log.info("");
         Log.info("====================================================================================================");
         Log.info("resolve() called");
@@ -82,6 +90,9 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
         return null;
     }
 
+    /**
+     * 指定した要素がこの参照の対象かどうかを判定する。
+     */
     @Override
     public boolean isReferenceTo(@NotNull PsiElement element) {
         if (element instanceof Variable) {
@@ -91,6 +102,9 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
         return false;
     }
 
+    /**
+     * 補完候補の配列を返す（未使用）。
+     */
     @Override
     public Object @NotNull [] getVariants() {
         return EMPTY_ARRAY;

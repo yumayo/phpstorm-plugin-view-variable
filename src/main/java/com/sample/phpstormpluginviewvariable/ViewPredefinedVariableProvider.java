@@ -17,7 +17,16 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * ViewPredefinedVariableProvider
+ * Viewファイルで利用可能な変数名（setVarで渡された変数）を補完候補として提供するProvider。
+ * コントローラーのsetVarで渡された変数名をViewファイルで補完できるようにする。
+ */
 public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProvider {
+    /**
+     * Viewファイルで利用可能な変数名をセットとして返す。
+     * ControllerのsetVarで渡された変数名を取得し、View側で補完候補として表示する。
+     */
     @Override
     public @NotNull Set<CharSequence> getPredefinedVariables(@NotNull PhpFile phpFile) {
         String fileName = phpFile.getName();
@@ -32,6 +41,9 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
         return Set.of();
     }
 
+    /**
+     * 指定したファイルがViewファイルかどうかを判定する。
+     */
     private boolean isViewFile(PhpFile phpFile) {
         VirtualFile virtualFile = phpFile.getVirtualFile();
         if (virtualFile == null) {
@@ -41,6 +53,9 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
         return filePath.contains("/View/") && filePath.endsWith(".php");
     }
 
+    /**
+     * ControllerのsetVar呼び出しから、Viewで利用可能な変数名を取得する。
+     */
     private Set<CharSequence> getViewVariables(PhpFile viewFile) {
         Set<CharSequence> variables = new HashSet<>();
 

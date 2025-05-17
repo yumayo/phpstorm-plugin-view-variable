@@ -19,13 +19,25 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.Set;
 
+/**
+ * ViewTypeProvider
+ * Viewファイル内で使用されている変数の型推論を担当するTypeProvider。
+ * ControllerのsetVarで渡された値の型をView側で推論できるようにする。
+ */
 public class ViewTypeProvider implements PhpTypeProvider4 {
 
+    /**
+     * このTypeProviderのユニークキーを返す。
+     */
     @Override
     public char getKey() {
         return 'C'; // ユニークなキーを提供（他のTypeProviderと被らないようにする）
     }
 
+    /**
+     * Viewファイル内の変数の型を推論する。
+     * ControllerのsetVarで渡された値の型を取得し、View側で型補完や宣言ジャンプを可能にする。
+     */
     @Nullable
     @Override
     public PhpType getType(PsiElement psiElement) {
@@ -45,6 +57,9 @@ public class ViewTypeProvider implements PhpTypeProvider4 {
         return inferVariableTypeFromController(variable);
     }
 
+    /**
+     * 指定したPsiElementがViewファイル内かどうかを判定する。
+     */
     private boolean isInViewFile(PsiElement element) {
         PsiFile containingFile = element.getContainingFile();
         if (containingFile == null) {
@@ -60,6 +75,9 @@ public class ViewTypeProvider implements PhpTypeProvider4 {
         return filePath.contains("/View/") && filePath.endsWith(".php");
     }
 
+    /**
+     * ControllerのsetVar呼び出しから、変数の型を推論する。
+     */
     private PhpType inferVariableTypeFromController(Variable variable) {
         Log.info("inferVariableTypeFromController: " + variable);
 
@@ -116,12 +134,18 @@ public class ViewTypeProvider implements PhpTypeProvider4 {
         return null;
     }
 
+    /**
+     * 型補完用（未実装）。
+     */
     @Override
     public @Nullable PhpType complete(String s, Project project) {
         Log.info("complete: " + s);
         return null; // 実装省略
     }
 
+    /**
+     * シグネチャから要素を取得（未実装）。
+     */
     @Override
     public Collection<? extends PhpNamedElement> getBySignature(String s, Set<String> set, int i, Project project) {
         Log.info("getBySignature: " + s);
