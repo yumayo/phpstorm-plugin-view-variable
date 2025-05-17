@@ -13,7 +13,17 @@ import com.jetbrains.php.lang.psi.elements.MethodReference;
 import java.util.Collection;
 import java.util.HashSet;
 
+/**
+ * ControllerFile
+ * Viewファイルと対応するControllerファイル・アクションを特定し、
+ * そのアクション内で呼ばれているsetVarのMethodReferenceを取得するユーティリティクラス。
+ */
 public class ControllerFile {
+    /**
+     * 指定したViewファイル（VirtualFile）とProjectから、
+     * 対応するControllerファイルのアクション内で呼ばれているsetVarのMethodReferenceを返す。
+     * Viewファイル名からアクション名を推測し、Controllerファイルの該当メソッドのみを対象とする。
+     */
     public static Collection<MethodReference> getMethodReferences(VirtualFile viewVirtualFile, Project project) {
         Collection<MethodReference> variables = new HashSet<>();
 

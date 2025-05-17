@@ -6,8 +6,17 @@ import com.intellij.psi.PsiReferenceRegistrar;
 import com.jetbrains.php.lang.psi.elements.StringLiteralExpression;
 import com.jetbrains.php.lang.psi.elements.Variable;
 
+/**
+ * ViewReferenceContributor
+ * Viewファイル内の特定要素（例：StringLiteralExpression）に対して参照解決Providerを登録するクラス。
+ * 例：setVarの第一引数やView内の変数名に対して、独自のReferenceProviderを紐付ける。
+ */
 public class ViewReferenceContributor extends PsiReferenceContributor {
 
+    /**
+     * ReferenceProviderの登録処理。
+     * StringLiteralExpressionに対してViewStringLiteralExpressionReferenceProviderを登録する。
+     */
     @Override
     public void registerReferenceProviders(PsiReferenceRegistrar registrar) {
 
