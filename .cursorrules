@@ -1,0 +1,5 @@
+PhpStormの拡張プラグインを作成しています。
+拡張プラグイン自体のプログラミング言語は java を使用してください。
+PhpStorm側のプログラミング言語は php を使用してください。
+
+ログ出力には com.sample.phpstormpluginviewvariable.Log を使用してください。private static final Logger LOGのように変数定義をしないでください。
