@@ -41,17 +41,17 @@ public class ViewVariableCompletionProvider extends CompletionProvider<Completio
             return;
         }
 
-        Log.info("Adding view variable completions");
+        Log.info("Adding view variable completions for InvocationCount: " + parameters.getInvocationCount());
 
         // コントローラーからsetVarで設定された変数を取得
         Set<String> viewVariables = getViewVariablesFromController(position);
 
         // 各変数を補完候補として追加
         for (String varName : viewVariables) {
-            LookupElementBuilder element = LookupElementBuilder.create(varName)
+            LookupElementBuilder element = LookupElementBuilder.create("$" + varName)
                     .withTypeText("from controller")
                     .withIcon(PhpIcons.VARIABLE)
-                    .withPresentableText("$" + varName);
+                    .withPresentableText(varName);
 
             result.addElement(element);
             Log.info("Added completion candidate: $" + varName);
