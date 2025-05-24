@@ -51,15 +51,17 @@ public class ControllerFile {
         String controllerFileName;
         if (pathParts.length == 2) {
             controllerDir = "";
-            controllerFileName = pathParts[0] + "Controller.php";
+            String controllerName = pathParts[0].substring(0, 1).toUpperCase() + pathParts[0].substring(1);
+            controllerFileName = controllerName + "Controller.php";
         } else if (pathParts.length == 3) {
-            controllerDir = pathParts[0].replaceAll("([a-z0-9])([A-Z])", "$1-$2").toLowerCase() + "/";
-            controllerFileName = pathParts[1] + "Controller.php";
+            controllerDir = pathParts[0].substring(0, 1).toUpperCase() + pathParts[0].substring(1) + "/";
+            String controllerName = pathParts[1].substring(0, 1).toUpperCase() + pathParts[1].substring(1);
+            controllerFileName = controllerName + "Controller.php";
         } else {
             return variables;
         }
 
-        String controllerPath = viewPath.substring(0, viewIndex) + "/Controller/" + controllerDir + controllerFileName.substring(0, 1).toUpperCase() + controllerFileName.substring(1);
+        String controllerPath = viewPath.substring(0, viewIndex) + "/Controller/" + controllerDir + controllerFileName;
         Log.info("Controller path: " + controllerPath);
 
         VirtualFile controllerVirtualFile = LocalFileSystem.getInstance().findFileByPath(controllerPath);
