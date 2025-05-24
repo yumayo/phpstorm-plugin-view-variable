@@ -29,19 +29,21 @@ public class ControllerFile {
 
         // ビューファイルのパスからコントローラーファイルのパスを推測
         String viewPath = viewVirtualFile.getPath();
-        Log.info("View path: " + viewPath);
+        // WindowsとUnixのパス区切り文字を正規化
+        String normalizedViewPath = viewPath.replace("\\", "/");
+        Log.info("View path: " + viewPath + " (normalized: " + normalizedViewPath + ")");
 
         // ビューファイル名からアクション名を取得
         String viewFileName = viewVirtualFile.getName();
         String actionName = viewFileName.replace(".php", "") + "Action";
         Log.info("Action name: " + actionName);
 
-        int viewIndex = viewPath.indexOf("/views/");
+        int viewIndex = normalizedViewPath.indexOf("/views/");
         if (viewIndex == -1) {
-            Log.info("Not a view file: " + viewPath);
+            Log.info("Not a view file: " + normalizedViewPath);
             return variables;
         }
-        String viewSubPath = viewPath.substring(viewIndex + "/views/".length());
+        String viewSubPath = normalizedViewPath.substring(viewIndex + "/views/".length());
         Log.info("View sub path: " + viewSubPath);
 
         String[] pathParts = viewSubPath.split("/");
@@ -61,7 +63,11 @@ public class ControllerFile {
             return variables;
         }
 
-        String controllerPath = viewPath.substring(0, viewIndex) + "/Controller/" + controllerDir + controllerFileName;
+        String controllerPath = normalizedViewPath.substring(0, viewIndex) + "/Controller/" + controllerDir + controllerFileName;
+        // 元のパスの形式に戻す
+        if (viewPath.contains("\\")) {
+            controllerPath = controllerPath.replace("/", "\\");
+        }
         Log.info("Controller path: " + controllerPath);
 
         VirtualFile controllerVirtualFile = LocalFileSystem.getInstance().findFileByPath(controllerPath);
