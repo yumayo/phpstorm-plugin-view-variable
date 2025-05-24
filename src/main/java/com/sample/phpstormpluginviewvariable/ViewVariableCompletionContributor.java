@@ -8,6 +8,7 @@ import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.ProcessingContext;
+import com.jetbrains.php.PhpIcons;
 import com.jetbrains.php.lang.psi.PhpFile;
 import com.jetbrains.php.lang.psi.elements.*;
 import com.jetbrains.php.lang.lexer.PhpTokenTypes;
@@ -29,16 +30,22 @@ public class ViewVariableCompletionContributor extends CompletionContributor {
     public ViewVariableCompletionContributor() {
         Log.info("ViewVariableCompletionContributor initialized");
         
-        // PHP変数補完のパターンに特化
+        // PHP変数の直接的なパターンマッチング
         extend(CompletionType.BASIC,
                 PhpPatterns.psiElement(PhpTokenTypes.VARIABLE)
                         .withLanguage(com.jetbrains.php.lang.PhpLanguage.INSTANCE),
                 new ViewVariableCompletionProvider());
                 
-        // $記号の後での補完もサポート  
+        // $記号の後での補完（より幅広いコンテキスト）
         extend(CompletionType.BASIC,
                 PlatformPatterns.psiElement()
                         .afterLeaf(PlatformPatterns.psiElement(PhpTokenTypes.VARIABLE_MARKER))
+                        .withLanguage(com.jetbrains.php.lang.PhpLanguage.INSTANCE),
+                new ViewVariableCompletionProvider());
+                
+        // 一般的なPHP識別子パターンも追加（フォールバック）
+        extend(CompletionType.BASIC,
+                PlatformPatterns.psiElement()
                         .withLanguage(com.jetbrains.php.lang.PhpLanguage.INSTANCE),
                 new ViewVariableCompletionProvider());
     }
@@ -58,6 +65,12 @@ public class ViewVariableCompletionContributor extends CompletionContributor {
                 return;
             }
 
+            // 変数コンテキストかどうかをより厳密にチェック
+            if (!isVariableCompletionContext(position, parameters)) {
+                Log.info("Not in variable completion context, skipping");
+                return;
+            }
+
             Log.info("Adding view variable completions");
 
             // コントローラーからsetVarで設定された変数を取得
@@ -68,11 +81,56 @@ public class ViewVariableCompletionContributor extends CompletionContributor {
                 LookupElementBuilder element = LookupElementBuilder.create(varName)
                         .withTypeText("from controller")
                         .withIcon(com.jetbrains.php.PhpIcons.VAR)
-                        .withPresentableText("$" + varName);
+                        .withPresentableText("$" + varName)
+                        .withInsertHandler((insertionContext, item) -> {
+                            // 必要に応じてカスタムインサート処理
+                        });
                 
                 result.addElement(element);
                 Log.info("Added completion candidate: $" + varName);
             }
+        }
+
+        /**
+         * 変数補完のコンテキストかどうかを判定する。
+         */
+        private boolean isVariableCompletionContext(PsiElement position, CompletionParameters parameters) {
+            // 元のテキストをチェック
+            String originalText = parameters.getOriginalFile().getText();
+            int offset = parameters.getOffset();
+            
+            // カーソルの前の文字をチェック
+            if (offset > 0 && originalText.charAt(offset - 1) == '$') {
+                Log.info("Variable completion context: after $ symbol");
+                return true;
+            }
+            
+            // 現在の要素が変数であるかチェック
+            PsiElement current = position;
+            for (int i = 0; i < 5 && current != null; i++) {
+                if (current instanceof Variable) {
+                    Log.info("Variable completion context: in Variable element");
+                    return true;
+                }
+                
+                String text = current.getText();
+                if (text != null && text.startsWith("$")) {
+                    Log.info("Variable completion context: text starts with $");
+                    return true;
+                }
+                
+                current = current.getParent();
+            }
+            
+            // 前のトークンが$かチェック
+            PsiElement prevLeaf = com.intellij.psi.util.PsiTreeUtil.prevLeaf(position);
+            if (prevLeaf != null && "$".equals(prevLeaf.getText().trim())) {
+                Log.info("Variable completion context: previous token is $");
+                return true;
+            }
+            
+            Log.info("Not a variable completion context");
+            return false;
         }
 
         /**
