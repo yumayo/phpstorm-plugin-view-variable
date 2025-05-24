@@ -13,11 +13,14 @@ import com.jetbrains.php.PhpIcons;
 import com.jetbrains.php.lang.psi.elements.MethodReference;
 import com.jetbrains.php.lang.psi.elements.StringLiteralExpression;
 import com.jetbrains.php.lang.psi.elements.Variable;
+import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import com.sample.phpstormpluginviewvariable.model.ControllerFile;
 import com.sample.phpstormpluginviewvariable.util.Log;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class ViewVariableCompletionProvider extends CompletionProvider<CompletionParameters> {
@@ -44,17 +47,20 @@ public class ViewVariableCompletionProvider extends CompletionProvider<Completio
         Log.info("Adding view variable completions for InvocationCount: " + parameters.getInvocationCount());
 
         // コントローラーからsetVarで設定された変数を取得
-        Set<String> viewVariables = getViewVariablesFromController(position);
+        Map<String, String> viewVariables = getViewVariablesFromController(position);
 
         // 各変数を補完候補として追加
-        for (String varName : viewVariables) {
+        for (Map.Entry<String, String> entry : viewVariables.entrySet()) {
+            String varName = entry.getKey();
+            String type = entry.getValue();
+            
             LookupElementBuilder element = LookupElementBuilder.create("$" + varName)
-                    .withTypeText("from controller")
+                    .withTypeText(type)
                     .withIcon(PhpIcons.VARIABLE)
                     .withPresentableText(varName);
 
             result.addElement(element);
-            Log.info("Added completion candidate: $" + varName);
+            Log.info("Added completion candidate: $" + varName + " with type: " + type);
         }
     }
 
@@ -122,10 +128,10 @@ public class ViewVariableCompletionProvider extends CompletionProvider<Completio
     }
 
     /**
-     * コントローラーからsetVarで設定された変数名を取得する。
+     * コントローラーからsetVarで設定された変数名と型を取得する。
      */
-    private Set<String> getViewVariablesFromController(PsiElement element) {
-        Set<String> variables = new HashSet<>();
+    private Map<String, String> getViewVariablesFromController(PsiElement element) {
+        Map<String, String> variables = new HashMap<>();
 
         PsiFile containingFile = element.getContainingFile();
 
@@ -159,8 +165,19 @@ public class ViewVariableCompletionProvider extends CompletionProvider<Completio
 
             StringLiteralExpression keyArg = (StringLiteralExpression) args[0];
             String varName = keyArg.getContents();
-            variables.add(varName);
-            Log.info("Found variable from controller for completion: " + varName);
+            
+            // 第二引数から型情報を取得
+            String type = "mixed";
+            if (args[1] != null) {
+                // 第二引数の型をPhpStormの型推論システムで取得
+                if (args[1] instanceof com.jetbrains.php.lang.psi.elements.PhpExpression valueArg) {
+                    PhpType phpType = valueArg.getType();
+                    type = phpType.toString();
+                }
+            }
+            
+            variables.put(varName, type);
+            Log.info("Found variable from controller for completion: " + varName + " with type: " + type);
         }
 
         return variables;
