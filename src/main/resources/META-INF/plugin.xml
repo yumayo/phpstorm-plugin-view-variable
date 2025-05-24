@@ -13,7 +13,10 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <usageTypeProvider implementation="com.sample.phpstormpluginviewvariable.SetVarUsageTypeProvider"/>
-        <completion.contributor language="PHP" implementationClass="com.sample.phpstormpluginviewvariable.ViewVariableCompletionContributor"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="com.intellij.completion">
+        <contributor implementationClass="com.sample.phpstormpluginviewvariable.ViewVariableCompletionContributor"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij.psi">

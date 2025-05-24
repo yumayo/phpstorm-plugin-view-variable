@@ -39,7 +39,7 @@ public class ViewVariableCompletionContributor extends CompletionContributor {
         // $記号の後での補完（より幅広いコンテキスト）
         extend(CompletionType.BASIC,
                 PlatformPatterns.psiElement()
-                        .afterLeaf(PlatformPatterns.psiElement(PhpTokenTypes.VARIABLE_MARKER))
+                        .afterLeaf(PlatformPatterns.psiElement(PhpTokenTypes.VARIABLE))
                         .withLanguage(com.jetbrains.php.lang.PhpLanguage.INSTANCE),
                 new ViewVariableCompletionProvider());
                 
@@ -80,7 +80,7 @@ public class ViewVariableCompletionContributor extends CompletionContributor {
             for (String varName : viewVariables) {
                 LookupElementBuilder element = LookupElementBuilder.create(varName)
                         .withTypeText("from controller")
-                        .withIcon(com.jetbrains.php.PhpIcons.VAR)
+                        .withIcon(PhpIcons.VARIABLE)
                         .withPresentableText("$" + varName)
                         .withInsertHandler((insertionContext, item) -> {
                             // 必要に応じてカスタムインサート処理
