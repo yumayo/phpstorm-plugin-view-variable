@@ -29,11 +29,13 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
 
         // ビューファイルかどうかを判断
         if (isViewFile(phpFile)) {
-            return getViewVariables(phpFile);
+            Set<CharSequence> variables = getViewVariables(phpFile);
+            Log.info("Found " + variables.size() + " variables for view file: " + fileName);
+            return variables;
         }
 
         // その他のファイルタイプに対しては空のセットを返す
-        return Set.of();
+        return new HashSet<>();
     }
 
     /**
@@ -42,10 +44,15 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
     private boolean isViewFile(PhpFile phpFile) {
         VirtualFile virtualFile = phpFile.getVirtualFile();
         if (virtualFile == null) {
+            Log.info("Virtual file is null");
             return false;
         }
         String filePath = virtualFile.getPath();
-        return filePath.contains("/views/") && filePath.endsWith(".php");
+        // WindowsとUnixのパス区切り文字に対応
+        String normalizedPath = filePath.replace("\\", "/");
+        boolean isView = (normalizedPath.contains("/views/") || normalizedPath.contains("\\views\\")) && filePath.endsWith(".php");
+        Log.info("File path: " + filePath + " (normalized: " + normalizedPath + "), is view: " + isView);
+        return isView;
     }
 
     /**
@@ -53,21 +60,27 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
      */
     private Set<CharSequence> getViewVariables(PhpFile viewFile) {
         Set<CharSequence> variables = new HashSet<>();
+        
+        Log.info("Getting view variables for: " + viewFile.getName());
 
         var methodRefs = ControllerFile.getMethodReferences(viewFile.getVirtualFile(), viewFile.getProject());
+        Log.info("Found " + methodRefs.size() + " method references");
 
         for (MethodReference methodRef : methodRefs) {
+            Log.info("Checking method reference: " + methodRef.getName());
             if (!"setVar".equals(methodRef.getName())) {
                 continue;
             }
 
             // 第一引数が変数名を取得
             var args = methodRef.getParameters();
+            Log.info("Method has " + args.length + " parameters");
             if (args.length < 2) {
                 continue;
             }
 
             if (!(args[0] instanceof StringLiteralExpression)) {
+                Log.info("First argument is not a string literal");
                 continue;
             }
 
@@ -77,6 +90,7 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
             Log.info("Found variable in controller: " + varName);
         }
 
+        Log.info("Total variables found: " + variables.size());
         return variables;
     }
 }
