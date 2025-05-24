@@ -90,15 +90,21 @@ public class ControllerFile {
             .orElse(null);
 
         if (actionMethod == null) {
+            Log.info("Action method not found: " + actionName);
             return variables;
         }
+        
+        Log.info("Found action method: " + actionName + ", searching for setVar calls");
 
         for (MethodReference methodRef : PsiTreeUtil.findChildrenOfType(actionMethod, MethodReference.class)) {
             // 参照元ファイルがcontrollerFileと一致する場合のみ追加
             if (methodRef.getContainingFile() == controllerFile) {
                 variables.add(methodRef);
+                Log.info("Added method reference: " + methodRef.getName());
             }
         }
+        
+        Log.info("Found " + variables.size() + " method references in " + actionName);
         return variables;
     }
 }
