@@ -35,19 +35,6 @@ public class ViewVariableCompletionContributor extends CompletionContributor {
                 PhpPatterns.psiElement(PhpTokenTypes.VARIABLE)
                         .withLanguage(com.jetbrains.php.lang.PhpLanguage.INSTANCE),
                 new ViewVariableCompletionProvider());
-                
-        // $記号の後での補完（より幅広いコンテキスト）
-        extend(CompletionType.BASIC,
-                PlatformPatterns.psiElement()
-                        .afterLeaf(PlatformPatterns.psiElement(PhpTokenTypes.VARIABLE))
-                        .withLanguage(com.jetbrains.php.lang.PhpLanguage.INSTANCE),
-                new ViewVariableCompletionProvider());
-                
-        // 一般的なPHP識別子パターンも追加（フォールバック）
-        extend(CompletionType.BASIC,
-                PlatformPatterns.psiElement()
-                        .withLanguage(com.jetbrains.php.lang.PhpLanguage.INSTANCE),
-                new ViewVariableCompletionProvider());
     }
 
     private static class ViewVariableCompletionProvider extends CompletionProvider<CompletionParameters> {
@@ -138,11 +125,10 @@ public class ViewVariableCompletionContributor extends CompletionContributor {
          */
         private boolean isInViewFile(PsiElement element) {
             PsiFile containingFile = element.getContainingFile();
-            if (!(containingFile instanceof PhpFile)) {
-                return false;
-            }
-            
-            VirtualFile virtualFile = containingFile.getVirtualFile();
+
+            // オリジナルファイルを取得
+            PsiFile originalFile = containingFile.getOriginalFile();
+            VirtualFile virtualFile = originalFile.getVirtualFile();
             if (virtualFile == null) {
                 return false;
             }
@@ -160,21 +146,20 @@ public class ViewVariableCompletionContributor extends CompletionContributor {
          */
         private Set<String> getViewVariablesFromController(PsiElement element) {
             Set<String> variables = new HashSet<>();
-            
-            PsiFile viewFile = element.getContainingFile();
-            if (viewFile == null) {
-                return variables;
-            }
-            
-            VirtualFile viewVirtualFile = viewFile.getVirtualFile();
-            if (viewVirtualFile == null) {
+
+            PsiFile containingFile = element.getContainingFile();
+
+            // オリジナルファイルを取得
+            PsiFile originalFile = containingFile.getOriginalFile();
+            VirtualFile virtualFile = originalFile.getVirtualFile();
+            if (virtualFile == null) {
                 return variables;
             }
             
             Project project = element.getProject();
             
             // ビューファイルに対応するコントローラーのメソッド参照を取得
-            var methodRefs = ControllerFile.getMethodReferences(viewVirtualFile, project);
+            var methodRefs = ControllerFile.getMethodReferences(virtualFile, project);
             Log.info("Found " + methodRefs.size() + " method references from controller");
             
             for (MethodReference methodRef : methodRefs) {
