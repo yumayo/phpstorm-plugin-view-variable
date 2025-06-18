@@ -29,7 +29,7 @@ public class ViewTypeProvider implements PhpTypeProvider4 {
      */
     @Override
     public char getKey() {
-        return 'C'; // ユニークなキーを提供（他のTypeProviderと被らないようにする）
+        return '☆'; // ユニークなキーを提供（他のTypeProviderと被らないようにする）
     }
 
     /**

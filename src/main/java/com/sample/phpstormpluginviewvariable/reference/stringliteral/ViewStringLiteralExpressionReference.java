@@ -221,7 +221,7 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
 
         // コントローラーのメソッド参照を取得
         Collection<MethodReference> methodRefs = ControllerFile.getMethodReferences(viewVirtualFile, project);
-        
+
         // 現在の要素がsetVarの第一引数として使用されているか確認
         for (MethodReference methodRef : methodRefs) {
             if (!"setVar".equals(methodRef.getName())) {

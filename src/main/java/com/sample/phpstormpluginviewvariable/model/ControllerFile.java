@@ -25,8 +25,6 @@ public class ControllerFile {
      * Viewファイル名からアクション名を推測し、Controllerファイルの該当メソッドのみを対象とする。
      */
     public static Collection<MethodReference> getMethodReferences(VirtualFile viewVirtualFile, Project project) {
-        Collection<MethodReference> variables = new HashSet<>();
-
         // ビューファイルのパスからコントローラーファイルのパスを推測
         String viewPath = viewVirtualFile.getPath();
         // WindowsとUnixのパス区切り文字を正規化
@@ -41,7 +39,7 @@ public class ControllerFile {
         int viewIndex = normalizedViewPath.indexOf("/views/");
         if (viewIndex == -1) {
             Log.info("Not a view file: " + normalizedViewPath);
-            return variables;
+            return new HashSet<>();
         }
         String viewSubPath = normalizedViewPath.substring(viewIndex + "/views/".length());
         Log.info("View sub path: " + viewSubPath);
@@ -60,7 +58,7 @@ public class ControllerFile {
             String controllerName = pathParts[1].substring(0, 1).toUpperCase() + pathParts[1].substring(1);
             controllerFileName = controllerName + "Controller.php";
         } else {
-            return variables;
+            return new HashSet<>();
         }
 
         String controllerPath = normalizedViewPath.substring(0, viewIndex) + "/Controller/" + controllerDir + controllerFileName;
@@ -73,14 +71,14 @@ public class ControllerFile {
         VirtualFile controllerVirtualFile = LocalFileSystem.getInstance().findFileByPath(controllerPath);
         if (controllerVirtualFile == null) {
             Log.info("Controller file not found: " + controllerPath);
-            return variables;
+            return new HashSet<>();
         }
 
         // コントローラーファイルをPsiManagerを使用して取得
         PsiFile controllerFile = PsiManager.getInstance(project).findFile(controllerVirtualFile);
         if (controllerFile == null) {
             Log.info("Controller file not found: " + controllerPath);
-            return variables;
+            return new HashSet<>();
         }
 
         // コントローラーファイル内の指定されたアクション名のメソッド内のsetVarメソッド呼び出しを検索
@@ -91,11 +89,12 @@ public class ControllerFile {
 
         if (actionMethod == null) {
             Log.info("Action method not found: " + actionName);
-            return variables;
+            return new HashSet<>();
         }
         
         Log.info("Found action method: " + actionName + ", searching for setVar calls");
 
+        Collection<MethodReference> variables = new HashSet<>();
         for (MethodReference methodRef : PsiTreeUtil.findChildrenOfType(actionMethod, MethodReference.class)) {
             // 参照元ファイルがcontrollerFileと一致する場合のみ追加
             if (methodRef.getContainingFile() == controllerFile) {

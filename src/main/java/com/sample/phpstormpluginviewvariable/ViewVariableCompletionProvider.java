@@ -19,9 +19,7 @@ import com.sample.phpstormpluginviewvariable.util.Log;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class ViewVariableCompletionProvider extends CompletionProvider<CompletionParameters> {
     @Override
@@ -67,7 +65,7 @@ public class ViewVariableCompletionProvider extends CompletionProvider<Completio
     /**
      * 変数補完のコンテキストかどうかを判定する。
      */
-    private boolean isVariableCompletionContext(PsiElement position, CompletionParameters parameters) {
+    private boolean isVariableCompletionContext(@NotNull PsiElement position, @NotNull CompletionParameters parameters) {
         // 元のテキストをチェック
         String originalText = parameters.getOriginalFile().getText();
         int offset = parameters.getOffset();
@@ -165,17 +163,14 @@ public class ViewVariableCompletionProvider extends CompletionProvider<Completio
 
             StringLiteralExpression keyArg = (StringLiteralExpression) args[0];
             String varName = keyArg.getContents();
-            
-            // 第二引数から型情報を取得
+
+            // 第二引数の型をPhpStormの型推論システムで取得
             String type = "mixed";
-            if (args[1] != null) {
-                // 第二引数の型をPhpStormの型推論システムで取得
-                if (args[1] instanceof com.jetbrains.php.lang.psi.elements.PhpExpression valueArg) {
-                    PhpType phpType = valueArg.getType();
-                    type = phpType.toString();
-                }
+            if (args[1] instanceof com.jetbrains.php.lang.psi.elements.PhpExpression valueArg) {
+                PhpType phpType = valueArg.getType();
+                type = phpType.toString();
             }
-            
+
             variables.put(varName, type);
             Log.info("Found variable from controller for completion: " + varName + " with type: " + type);
         }

@@ -12,6 +12,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashSet;
 import java.util.Set;
 
+import static com.sample.phpstormpluginviewvariable.model.ViewFile.isViewFile;
+
 /**
  * ViewPredefinedVariableProvider
  * Viewファイルで利用可能な変数名（setVarで渡された変数）を補完候補として提供するProvider。
@@ -39,28 +41,11 @@ public class ViewPredefinedVariableProvider implements PhpPredefinedVariableProv
     }
 
     /**
-     * 指定したファイルがViewファイルかどうかを判定する。
-     */
-    private boolean isViewFile(PhpFile phpFile) {
-        VirtualFile virtualFile = phpFile.getVirtualFile();
-        if (virtualFile == null) {
-            Log.info("Virtual file is null");
-            return false;
-        }
-        String filePath = virtualFile.getPath();
-        // WindowsとUnixのパス区切り文字に対応
-        String normalizedPath = filePath.replace("\\", "/");
-        boolean isView = (normalizedPath.contains("/views/") || normalizedPath.contains("\\views\\")) && filePath.endsWith(".php");
-        Log.info("File path: " + filePath + " (normalized: " + normalizedPath + "), is view: " + isView);
-        return isView;
-    }
-
-    /**
      * ControllerのsetVar呼び出しから、Viewで利用可能な変数名を取得する。
      */
     private Set<CharSequence> getViewVariables(PhpFile viewFile) {
         Set<CharSequence> variables = new HashSet<>();
-        
+
         Log.info("Getting view variables for: " + viewFile.getName());
 
         var methodRefs = ControllerFile.getMethodReferences(viewFile.getVirtualFile(), viewFile.getProject());
