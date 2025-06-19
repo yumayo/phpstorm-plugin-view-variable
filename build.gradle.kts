@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.sample.phpstormpluginviewvariable"
-version = "0.1"
+version = "1.1"
 
 repositories {
     mavenCentral()
