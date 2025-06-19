@@ -109,9 +109,9 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
         // Viewファイルのパスを組み立て
         String viewPath = controllerPath.substring(0, controllerPath.indexOf("/Controller/")) + "/views/";
         if (!subDir.isEmpty()) {
-            viewPath += subDir + "/";
+            viewPath += toKebabCase(subDir) + "/";
         }
-        viewPath += controllerClassName.toLowerCase() + "/" + actionName + ".php";
+        viewPath += toKebabCase(controllerClassName).toLowerCase() + "/" + toKebabCase(actionName) + ".php";
 
         VirtualFile viewVirtualFile = LocalFileSystem.getInstance().findFileByPath(viewPath);
         if (viewVirtualFile == null) {
@@ -280,5 +280,15 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
         }
 
         return variants.toArray();
+    }
+
+    /**
+     * Convert a string to kebab-case
+     */
+    private String toKebabCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        return input.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
     }
 }

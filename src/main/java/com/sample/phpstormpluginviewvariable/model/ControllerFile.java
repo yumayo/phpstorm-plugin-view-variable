@@ -58,14 +58,11 @@ public class ControllerFile {
             String controllerName = pathParts[1].substring(0, 1).toUpperCase() + pathParts[1].substring(1);
             controllerFileName = controllerName + "Controller.php";
         } else {
+            Log.info("Unsupported path structure: " + pathParts.length + " parts");
             return new HashSet<>();
         }
 
         String controllerPath = normalizedViewPath.substring(0, viewIndex) + "/Controller/" + controllerDir + controllerFileName;
-        // 元のパスの形式に戻す
-        if (viewPath.contains("\\")) {
-            controllerPath = controllerPath.replace("/", "\\");
-        }
         Log.info("Controller path: " + controllerPath);
 
         VirtualFile controllerVirtualFile = LocalFileSystem.getInstance().findFileByPath(controllerPath);
