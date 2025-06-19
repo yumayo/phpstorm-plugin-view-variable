@@ -143,7 +143,30 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
         // ビューファイルのパスからコントローラーファイルのパスを推測
         String viewPath = viewFile.getVirtualFile().getPath();
         String controllerPath = viewPath.replace("/views/", "/Controller/");
-        controllerPath = controllerPath.replace(".php", "Controller.php");
+        
+        // パス内のケバブケースをパスカルケースに変換
+        String[] pathParts = controllerPath.split("/");
+        StringBuilder convertedPath = new StringBuilder();
+        
+        for (int i = 0; i < pathParts.length; i++) {
+            if (i > 0) {
+                convertedPath.append("/");
+            }
+            
+            String part = pathParts[i];
+            // /Controller/ 以降の部分をパスカルケースに変換
+            if (i >= getControllerIndex(pathParts) && !part.isEmpty()) {
+                // 最後のパーツ（ファイル名）の場合は.phpを除去してから変換
+                if (i == pathParts.length - 1 && part.endsWith(".php")) {
+                    part = part.replace(".php", "");
+                }
+                convertedPath.append(toPascalCase(part));
+            } else {
+                convertedPath.append(part);
+            }
+        }
+        
+        controllerPath = convertedPath.toString() + "Controller.php";
 
         VirtualFile controllerVirtualFile = LocalFileSystem.getInstance().findFileByPath(controllerPath);
         if (controllerVirtualFile == null) {
@@ -283,12 +306,44 @@ public class ViewStringLiteralExpressionReference extends PsiReferenceBase<Strin
     }
 
     /**
-     * Convert a string to kebab-case
+     * 文字列をケバブケースに変換
      */
     private String toKebabCase(String input) {
         if (input == null || input.isEmpty()) {
             return input;
         }
         return input.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
+    }
+    
+    /**
+     * 文字列をパスカルケースに変換
+     */
+    private String toPascalCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        String[] parts = input.split("-");
+        StringBuilder result = new StringBuilder();
+        for (String part : parts) {
+            if (!part.isEmpty()) {
+                result.append(Character.toUpperCase(part.charAt(0)));
+                if (part.length() > 1) {
+                    result.append(part.substring(1).toLowerCase());
+                }
+            }
+        }
+        return result.toString();
+    }
+    
+    /**
+     * パス配列内の"/Controller/"のインデックスを取得
+     */
+    private int getControllerIndex(String[] pathParts) {
+        for (int i = 0; i < pathParts.length; i++) {
+            if ("Controller".equals(pathParts[i])) {
+                return i + 1; // Return index after "Controller"
+            }
+        }
+        return pathParts.length; // If not found, don't convert anything
     }
 }

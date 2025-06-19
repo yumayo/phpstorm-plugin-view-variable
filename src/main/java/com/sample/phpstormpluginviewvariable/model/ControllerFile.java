@@ -33,7 +33,8 @@ public class ControllerFile {
 
         // ビューファイル名からアクション名を取得
         String viewFileName = viewVirtualFile.getName();
-        String actionName = viewFileName.replace(".php", "") + "Action";
+        String baseActionName = viewFileName.replace(".php", "");
+        String actionName = toCamelCase(baseActionName) + "Action";
         Log.info("Action name: " + actionName);
 
         int viewIndex = normalizedViewPath.indexOf("/views/");
@@ -51,11 +52,11 @@ public class ControllerFile {
         String controllerFileName;
         if (pathParts.length == 2) {
             controllerDir = "";
-            String controllerName = pathParts[0].substring(0, 1).toUpperCase() + pathParts[0].substring(1);
+            String controllerName = toPascalCase(pathParts[0]);
             controllerFileName = controllerName + "Controller.php";
         } else if (pathParts.length == 3) {
-            controllerDir = pathParts[0].substring(0, 1).toUpperCase() + pathParts[0].substring(1) + "/";
-            String controllerName = pathParts[1].substring(0, 1).toUpperCase() + pathParts[1].substring(1);
+            controllerDir = toPascalCase(pathParts[0]) + "/";
+            String controllerName = toPascalCase(pathParts[1]);
             controllerFileName = controllerName + "Controller.php";
         } else {
             Log.info("Unsupported path structure: " + pathParts.length + " parts");
@@ -102,5 +103,50 @@ public class ControllerFile {
         
         Log.info("Found " + variables.size() + " method references in " + actionName);
         return variables;
+    }
+    
+    /**
+     * 文字列をパスカルケースに変換
+     */
+    private static String toPascalCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        String[] parts = input.split("-");
+        StringBuilder result = new StringBuilder();
+        for (String part : parts) {
+            if (!part.isEmpty()) {
+                result.append(Character.toUpperCase(part.charAt(0)));
+                if (part.length() > 1) {
+                    result.append(part.substring(1).toLowerCase());
+                }
+            }
+        }
+        return result.toString();
+    }
+    
+    /**
+     * 文字列をキャメルケースに変換
+     */
+    private static String toCamelCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        String[] parts = input.split("-");
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            String part = parts[i];
+            if (!part.isEmpty()) {
+                if (i == 0) {
+                    result.append(part.toLowerCase());
+                } else {
+                    result.append(Character.toUpperCase(part.charAt(0)));
+                    if (part.length() > 1) {
+                        result.append(part.substring(1).toLowerCase());
+                    }
+                }
+            }
+        }
+        return result.toString();
     }
 }
