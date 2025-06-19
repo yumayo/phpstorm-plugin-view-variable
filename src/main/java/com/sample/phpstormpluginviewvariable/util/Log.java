@@ -5,8 +5,25 @@ import com.intellij.openapi.diagnostic.Logger;
 /**
  * 呼び出し元の情報を自動的に取得するスタティックロガー
  * 毎回ロガーのインスタンスを作成する必要がなく、直接静的メソッドを呼び出して使用できる
+ * 
+ * デバッグモードの制御:
+ * - システムプロパティ "phpstormpluginviewvariable.debug.enabled" が "true" の場合のみログを出力
  */
 public class Log {
+    
+    private static final boolean DEBUG_ENABLED = isDebugEnabled();
+    
+    /**
+     * デバッグモードが有効かどうかを判定
+     */
+    private static boolean isDebugEnabled() {
+        // システムプロパティでの明示的な設定をチェック
+        String debugProperty = System.getProperty("phpstormpluginviewvariable.debug.enabled");
+        if (debugProperty != null) {
+            return "true".equalsIgnoreCase(debugProperty);
+        }
+        return false;
+    }
 
     /**
      * デバッグレベルのログを出力する
@@ -62,6 +79,10 @@ public class Log {
      * @param throwable 例外（ない場合はnull）
      */
     private static void logWithLevel(String level, String message, Throwable throwable) {
+        // デバッグモードが無効の場合は何もしない
+        if (!DEBUG_ENABLED) {
+            return;
+        }
         // 呼び出し元のスタックトレース情報を取得
         StackTraceElement caller = getCaller();
         String className = extractSimpleClassName(caller.getClassName());
