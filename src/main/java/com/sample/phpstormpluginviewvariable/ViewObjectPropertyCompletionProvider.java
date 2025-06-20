@@ -111,76 +111,13 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
             Log.info("ViewFile is null, returning null");
             return null;
         }
-        
-        VirtualFile viewVirtualFile = viewFile.getVirtualFile();
+
+        VirtualFile viewVirtualFile = viewFile.getOriginalFile().getVirtualFile();
         if (viewVirtualFile == null) {
-            Log.info("ViewVirtualFile is null, trying alternative approach");
-            // VirtualFileが取得できない場合の代替手段
-            String fileName = viewFile.getName();
-            Log.info("ViewFile name: " + fileName);
-            
-            // ファイルパスを取得する別の方法を試す
-            String filePath = null;
-            try {
-                // ViewFileがPsiFileBaseの場合、getViewProviderからVirtualFileを取得
-                if (viewFile.getViewProvider() != null && viewFile.getViewProvider().getVirtualFile() != null) {
-                    viewVirtualFile = viewFile.getViewProvider().getVirtualFile();
-                    Log.info("Got VirtualFile from ViewProvider: " + viewVirtualFile.getPath());
-                    
-                    // パスが不完全（フルパスでない）場合の対処
-                    String vfPath = viewVirtualFile.getPath();
-                    if (vfPath.startsWith("/") && !vfPath.contains("/views/")) {
-                        Log.info("VirtualFile path seems incomplete, trying to get full path");
-                        
-                        // プロジェクトのベースパスと組み合わせてフルパスを作成
-                        Project project = variable.getProject();
-                        String basePath = project.getBasePath();
-                        if (basePath != null) {
-                            Log.info("Searching for file with pattern: **/" + fileName + " in project: " + basePath);
-                            
-                            // LocalFileSystemを使って実際のファイルを検索
-                            try {
-                                com.intellij.openapi.vfs.VirtualFile projectRoot = com.intellij.openapi.vfs.LocalFileSystem.getInstance().findFileByPath(basePath);
-                                if (projectRoot != null) {
-                                    Log.info("Project root found: " + projectRoot.getPath());
-                                    
-                                    // シンプルな再帰検索
-                                    java.util.List<com.intellij.openapi.vfs.VirtualFile> foundFiles = new java.util.ArrayList<>();
-                                    searchForFile(projectRoot, fileName, foundFiles);
-                                    
-                                    Log.info("Found " + foundFiles.size() + " files with name: " + fileName);
-                                    
-                                    for (com.intellij.openapi.vfs.VirtualFile foundFile : foundFiles) {
-                                        String foundPath = foundFile.getPath();
-                                        Log.info("Found file: " + foundPath);
-                                        if (foundPath.contains("/views/")) {
-                                            Log.info("Using view file: " + foundPath);
-                                            viewVirtualFile = foundFile;
-                                            break;
-                                        }
-                                    }
-                                } else {
-                                    Log.info("Project root not found for path: " + basePath);
-                                }
-                            } catch (Exception searchException) {
-                                Log.info("Error searching for file: " + searchException.getMessage());
-                            }
-                        }
-                    }
-                } else {
-                    // 最後の手段として、ファイル名からパスを推測
-                    Log.info("Cannot get VirtualFile, using filename only");
-                    // この場合はControllerFile.getMethodReferencesを呼び出せないので、
-                    // 代替手段が必要
-                    Log.info("Cannot proceed without VirtualFile, returning null");
-                    return null;
-                }
-            } catch (Exception e) {
-                Log.info("Error getting alternative file path: " + e.getMessage());
-                return null;
-            }
+            Log.info("viewVirtualFile is null, returning null");
+            return null;
         }
-        
+
         Project project = variable.getProject();
         Log.info("Project base path: " + (project.getBasePath() != null ? project.getBasePath() : "null"));
         Log.info("Final VirtualFile path: " + viewVirtualFile.getPath());
@@ -486,24 +423,5 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
         }
         
         Log.info("addPropertyAndMethodCompletions completed");
-    }
-    
-    /**
-     * ファイルを再帰的に検索するヘルパーメソッド
-     */
-    private void searchForFile(com.intellij.openapi.vfs.VirtualFile directory, String fileName, java.util.List<com.intellij.openapi.vfs.VirtualFile> results) {
-        try {
-            if (directory.isDirectory()) {
-                for (com.intellij.openapi.vfs.VirtualFile child : directory.getChildren()) {
-                    if (child.isDirectory()) {
-                        searchForFile(child, fileName, results);
-                    } else if (fileName.equals(child.getName())) {
-                        results.add(child);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            Log.info("Error searching in directory " + directory.getPath() + ": " + e.getMessage());
-        }
     }
 }
