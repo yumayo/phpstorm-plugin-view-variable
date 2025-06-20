@@ -361,8 +361,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                         if (!field.getModifier().isPrivate()) { // privateでないプロパティのみ
                             LookupElementBuilder element = LookupElementBuilder.create(field.getName())
                                     .withIcon(PhpIcons.FIELD)
-                                    .withTypeText(PhpTypeString.getSafeTypeString(field.getType()))
-                                    .withTailText(" (property)");
+                                    .withTypeText(PhpTypeString.getSafeTypeString(field.getType()));
                             result.addElement(element);
                             Log.info("Added property: " + field.getName());
                         } else {
@@ -387,7 +386,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                                             // メソッド名の後に括弧を追加
                                             context.getDocument().insertString(context.getTailOffset(), "()");
                                             // カーソルを括弧の中に移動
-                                            context.getEditor().getCaretModel().moveToOffset(context.getTailOffset() - 1);
+                                            context.getEditor().getCaretModel().moveToOffset(context.getTailOffset());
                                         }
                                     });
                             result.addElement(element);
