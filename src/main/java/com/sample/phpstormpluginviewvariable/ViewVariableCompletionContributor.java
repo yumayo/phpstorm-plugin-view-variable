@@ -19,5 +19,11 @@ public class ViewVariableCompletionContributor extends CompletionContributor {
         extend(CompletionType.BASIC,
                 PhpPatterns.psiElement(PhpTokenTypes.VARIABLE),
                 new ViewVariableCompletionProvider());
+        
+        // オブジェクトのプロパティとメソッド補完（$object->property）
+        extend(CompletionType.BASIC,
+                PhpPatterns.psiElement(PhpTokenTypes.IDENTIFIER)
+                    .afterLeaf(PhpPatterns.psiElement(PhpTokenTypes.ARROW)),
+                new ViewObjectPropertyCompletionProvider());
     }
 }
