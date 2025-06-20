@@ -17,6 +17,7 @@ import com.jetbrains.php.PhpIcons;
 import com.jetbrains.php.lang.psi.elements.*;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import com.sample.phpstormpluginviewvariable.model.ControllerFile;
+import com.sample.phpstormpluginviewvariable.model.ViewFile;
 import com.sample.phpstormpluginviewvariable.util.Log;
 import com.sample.phpstormpluginviewvariable.util.PhpTypeString;
 import org.jetbrains.annotations.NotNull;
@@ -86,26 +87,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
      */
     private PhpType getVariableTypeFromController(Variable variable, String variableName) {
         Log.info("getVariableTypeFromController called for variable: " + variableName);
-        
-        // まずforeachループ内の変数かチェック
-        PhpType foreachType = getForeachVariableType(variable, variableName);
-        if (foreachType != null) {
-            Log.info("Found foreach type, returning: " + PhpTypeString.getSafeTypeString(foreachType));
-            return foreachType;
-        }
-        Log.info("No foreach type found");
-        
-        // 直接変数の型を取得してクリーンアップを試す
-        PhpType directType = variable.getType();
-        if (directType != null && !directType.isEmpty()) {
-            PhpType cleanedType = PhpTypeString.cleanPhpType(directType);
-            if (cleanedType != null && !cleanedType.isEmpty()) {
-                Log.info("Using cleaned direct variable type: " + PhpTypeString.getSafeTypeString(cleanedType));
-                return cleanedType;
-            }
-        }
-        Log.info("No direct variable type found");
-        
+
         PsiFile viewFile = variable.getContainingFile();
         if (viewFile == null) {
             Log.info("ViewFile is null, returning null");
@@ -123,11 +105,16 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
         Log.info("Final VirtualFile path: " + viewVirtualFile.getPath());
         Log.info("VirtualFile name: " + viewVirtualFile.getName());
         Log.info("VirtualFile parent: " + (viewVirtualFile.getParent() != null ? viewVirtualFile.getParent().getPath() : "null"));
+
+        if (!ViewFile.isViewFile(viewVirtualFile.getPath())) {
+            Log.info("Not a view file. path=" + viewVirtualFile.getPath());
+            return null;
+        }
         
         // コントローラーのsetVar呼び出しを取得
         Collection<MethodReference> methodRefs = ControllerFile.getMethodReferences(viewVirtualFile, project);
         Log.info("Found " + methodRefs.size() + " method references from controller");
-        
+
         for (MethodReference methodRef : methodRefs) {
             Log.info("Processing method reference: " + methodRef.getName());
             if (!"setVar".equals(methodRef.getName())) {
@@ -166,6 +153,14 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                 Log.info("Value argument is not PhpExpression, continuing");
             }
         }
+
+        // foreachループ内の変数かチェック
+        PhpType foreachType = getForeachVariableType(variable, variableName);
+        if (foreachType != null) {
+            Log.info("Found foreach type, returning: " + PhpTypeString.getSafeTypeString(foreachType));
+            return foreachType;
+        }
+        Log.info("No foreach type found");
         
         Log.info("No matching setVar found, returning null");
         return null;
@@ -181,27 +176,27 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
             Log.info("Variable is not inside foreach loop");
             return null;
         }
-        
+
         // foreachの値変数が一致するかチェック
         Variable valueVariable = foreach.getValue();
         if (valueVariable == null || !variableName.equals(valueVariable.getName())) {
             Log.info("Variable name does not match foreach value variable");
             return null;
         }
-        
+
         Log.info("Found foreach loop for variable: " + variableName);
-        
+
         // 配列変数を取得
         PsiElement arrayExpression = foreach.getArray();
         if (!(arrayExpression instanceof Variable)) {
             Log.info("Foreach array is not a simple variable");
             return null;
         }
-        
+
         Variable arrayVariable = (Variable) arrayExpression;
         String arrayVariableName = arrayVariable.getName();
         Log.info("Foreach array variable: " + arrayVariableName);
-        
+
         // 配列変数の型をコントローラーから取得
         Log.info("About to call getVariableTypeFromController for: " + arrayVariableName);
         PhpType arrayType = getVariableTypeFromController(variable, arrayVariableName);
@@ -211,7 +206,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
             // ViewTypeProviderを使って型を解決
             arrayType = getTypeFromViewTypeProvider(arrayVariable, arrayVariableName);
             Log.info("Array variable type from ViewTypeProvider: " + (arrayType != null ? PhpTypeString.getSafeTypeString(arrayType) : "null"));
-            
+
             if (arrayType == null) {
                 Log.info("Trying to get type from current file context...");
                 // 最後の手段として現在のファイルコンテキストから取得
@@ -219,81 +214,18 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                 Log.info("Array variable type from context: " + (arrayType != null ? PhpTypeString.getSafeTypeString(arrayType) : "null"));
             }
         }
-        
+
         if (arrayType == null) {
             Log.info("Still no type found for array variable");
             return null;
         }
-        
+
         Log.info("Array type: " + PhpTypeString.getSafeTypeString(arrayType));
-        
+
         // 配列型から要素型を推論
         return getElementTypeFromArrayType(arrayType);
     }
-    
-    /**
-     * 配列変数の型をコントローラーから取得
-     */
-    private PhpType getArrayVariableTypeFromController(Variable originalVariable, String variableName) {
-        Log.info("getArrayVariableTypeFromController called for: " + variableName);
-        
-        PsiFile viewFile = originalVariable.getContainingFile();
-        if (viewFile == null) {
-            Log.info("viewFile is null");
-            return null;
-        }
-        
-        VirtualFile viewVirtualFile = viewFile.getVirtualFile();
-        if (viewVirtualFile == null) {
-            Log.info("viewVirtualFile is null");
-            return null;
-        }
-        
-        Project project = originalVariable.getProject();
-        Log.info("Project: " + project.getName());
-        
-        // コントローラーのsetVar呼び出しを取得
-        Collection<MethodReference> methodRefs = ControllerFile.getMethodReferences(viewVirtualFile, project);
-        
-        Log.info("Found " + methodRefs.size() + " method references from controller");
-        
-        for (MethodReference methodRef : methodRefs) {
-            Log.info("Processing method: " + methodRef.getName());
-            if (!"setVar".equals(methodRef.getName())) {
-                continue;
-            }
-            
-            PsiElement[] args = methodRef.getParameters();
-            Log.info("setVar call with " + args.length + " arguments");
-            if (args.length < 2) {
-                continue;
-            }
-            
-            if (!(args[0] instanceof StringLiteralExpression)) {
-                Log.info("First argument is not string literal: " + args[0].getClass().getSimpleName());
-                continue;
-            }
-            
-            StringLiteralExpression keyArg = (StringLiteralExpression) args[0];
-            String keyValue = keyArg.getContents();
-            Log.info("setVar key: '" + keyValue + "', looking for: '" + variableName + "'");
-            if (!variableName.equals(keyValue)) {
-                continue;
-            }
-            
-            // 第二引数の型を取得
-            PsiElement valueArg = args[1];
-            Log.info("Found matching setVar, value arg type: " + valueArg.getClass().getSimpleName());
-            if (valueArg instanceof PhpExpression) {
-                PhpType type = ((PhpExpression) valueArg).getType();
-                Log.info("Value type: " + (type != null ? PhpTypeString.getSafeTypeString(type) : "null"));
-                return type;
-            }
-        }
-        
-        return null;
-    }
-    
+
     /**
      * ViewTypeProviderを使って変数の型を取得
      */
@@ -301,44 +233,44 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
         try {
             // ViewTypeProviderのインスタンスを作成
             ViewTypeProvider viewTypeProvider = new ViewTypeProvider();
-            
+
             // 変数の型を取得
             PhpType type = viewTypeProvider.getType(variable);
             Log.info("ViewTypeProvider returned type: " + (type != null ? PhpTypeString.getSafeTypeString(type) : "null"));
-            
+
             return type;
         } catch (Exception e) {
             Log.info("Error getting type from ViewTypeProvider: " + e.getMessage());
             return null;
         }
     }
-    
+
     /**
      * 配列型から要素型を推論
      */
     private PhpType getElementTypeFromArrayType(PhpType arrayType) {
         for (String typeName : arrayType.getTypes()) {
             Log.info("Processing array type: " + typeName);
-            
+
             // Quest[] -> Quest に変換
             if (typeName.endsWith("[]")) {
                 String elementTypeName = typeName.substring(0, typeName.length() - 2);
                 Log.info("Extracted element type: " + elementTypeName);
                 return PhpType.builder().add(elementTypeName).build();
             }
-            
-            // array<Quest> -> Quest に変換  
+
+            // array<Quest> -> Quest に変換
             if (typeName.startsWith("array<") && typeName.endsWith(">")) {
                 String elementTypeName = typeName.substring(6, typeName.length() - 1);
                 Log.info("Extracted element type from array<>: " + elementTypeName);
                 return PhpType.builder().add(elementTypeName).build();
             }
         }
-        
+
         Log.info("Could not extract element type from array type");
         return null;
     }
-    
+
     /**
      * 型からプロパティとメソッドの補完候補を追加
      */
