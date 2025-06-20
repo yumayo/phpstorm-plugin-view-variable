@@ -81,6 +81,12 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
      * コントローラーから変数の型を取得
      */
     private PhpType getVariableTypeFromController(Variable variable, String variableName) {
+        // デバッグ用：quest変数の場合は固定で\App\modules\GmTool\Model\Questを返す
+        if ("quest".equals(variableName)) {
+            Log.info("Debug: Fixed type for quest variable");
+            return PhpType.builder().add("\\App\\Modules\\GmTool\\Model\\Quest").build();
+        }
+        
         // まずforeachループ内の変数かチェック
         PhpType foreachType = getForeachVariableType(variable, variableName);
         if (foreachType != null) {
@@ -313,43 +319,78 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
      * 型からプロパティとメソッドの補完候補を追加
      */
     private void addPropertyAndMethodCompletions(PhpType type, CompletionResultSet result, Project project) {
+        Log.info("addPropertyAndMethodCompletions called with type: " + getSafeTypeString(type));
+        
         // 型名からPhpClassを解決
         for (String typeName : type.getTypes()) {
             String cleanTypeName = cleanTypeString(typeName);
             Log.info("Looking for class: " + cleanTypeName);
             
-            // PhpClassを検索
-            Collection<PhpClass> classes = com.jetbrains.php.PhpIndex.getInstance(project)
-                    .getClassesByName(cleanTypeName);
-            
-            for (PhpClass phpClass : classes) {
-                Log.info("Found class: " + phpClass.getName());
+            try {
+                // PhpClassを検索
+                Collection<PhpClass> classes = com.jetbrains.php.PhpIndex.getInstance(project)
+                        .getClassesByName(cleanTypeName);
                 
-                // プロパティを追加
-                for (Field field : phpClass.getOwnFields()) {
-                    if (!field.getModifier().isPrivate()) { // privateでないプロパティのみ
-                        LookupElementBuilder element = LookupElementBuilder.create(field.getName())
-                                .withIcon(PhpIcons.FIELD)
-                                .withTypeText(getSafeTypeString(field.getType()))
-                                .withTailText(" (property)");
-                        result.addElement(element);
-                        Log.info("Added property: " + field.getName());
+                Log.info("Found " + classes.size() + " classes for name: " + cleanTypeName);
+                
+                if (classes.isEmpty()) {
+                    Log.info("No classes found, trying with different name variations");
+                    // 最後のクラス名部分だけで検索してみる
+                    String shortName = cleanTypeName;
+                    if (cleanTypeName.contains("\\")) {
+                        shortName = cleanTypeName.substring(cleanTypeName.lastIndexOf("\\") + 1);
+                        Log.info("Trying with short name: " + shortName);
+                        classes = com.jetbrains.php.PhpIndex.getInstance(project).getClassesByName(shortName);
+                        Log.info("Found " + classes.size() + " classes for short name: " + shortName);
                     }
                 }
                 
-                // メソッドを追加
-                for (Method method : phpClass.getOwnMethods()) {
-                    if (!method.getModifier().isPrivate() && !method.getName().startsWith("__")) {
-                        LookupElementBuilder element = LookupElementBuilder.create(method.getName())
-                                .withIcon(PhpIcons.METHOD)
-                                .withTypeText(getSafeTypeString(method.getType()))
-                                .withTailText("()");
-                        result.addElement(element);
-                        Log.info("Added method: " + method.getName());
+                for (PhpClass phpClass : classes) {
+                    Log.info("Processing class: " + phpClass.getName() + " (FQN: " + phpClass.getFQN() + ")");
+                    
+                    // プロパティを追加
+                    Field[] fields = phpClass.getOwnFields();
+                    Log.info("Class has " + fields.length + " own fields");
+                    
+                    for (Field field : fields) {
+                        Log.info("Processing field: " + field.getName() + " (modifier: " + field.getModifier() + ")");
+                        if (!field.getModifier().isPrivate()) { // privateでないプロパティのみ
+                            LookupElementBuilder element = LookupElementBuilder.create(field.getName())
+                                    .withIcon(PhpIcons.FIELD)
+                                    .withTypeText(getSafeTypeString(field.getType()))
+                                    .withTailText(" (property)");
+                            result.addElement(element);
+                            Log.info("Added property: " + field.getName());
+                        } else {
+                            Log.info("Skipped private field: " + field.getName());
+                        }
+                    }
+                    
+                    // メソッドを追加
+                    Method[] methods = phpClass.getOwnMethods();
+                    Log.info("Class has " + methods.length + " own methods");
+                    
+                    for (Method method : methods) {
+                        Log.info("Processing method: " + method.getName() + " (modifier: " + method.getModifier() + ")");
+                        if (!method.getModifier().isPrivate() && !method.getName().startsWith("__")) {
+                            LookupElementBuilder element = LookupElementBuilder.create(method.getName())
+                                    .withIcon(PhpIcons.METHOD)
+                                    .withTypeText(getSafeTypeString(method.getType()))
+                                    .withTailText("()");
+                            result.addElement(element);
+                            Log.info("Added method: " + method.getName());
+                        } else {
+                            Log.info("Skipped private/magic method: " + method.getName());
+                        }
                     }
                 }
+            } catch (Exception e) {
+                Log.info("Error processing class " + cleanTypeName + ": " + e.getMessage());
+                e.printStackTrace();
             }
         }
+        
+        Log.info("addPropertyAndMethodCompletions completed");
     }
     
     /**
