@@ -10,15 +10,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.ProcessingContext;
 import com.jetbrains.php.PhpIcons;
-import com.jetbrains.php.lang.psi.elements.MethodReference;
-import com.jetbrains.php.lang.psi.elements.StringLiteralExpression;
-import com.jetbrains.php.lang.psi.elements.Variable;
+import com.jetbrains.php.lang.psi.PhpFile;
+import com.jetbrains.php.lang.psi.elements.*;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import com.sample.phpstormpluginviewvariable.model.ControllerFile;
 import com.sample.phpstormpluginviewvariable.util.Log;
 import com.sample.phpstormpluginviewvariable.util.PhpTypeString;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,6 +52,12 @@ public class ViewVariableCompletionProvider extends CompletionProvider<Completio
         for (Map.Entry<String, String> entry : viewVariables.entrySet()) {
             String varName = entry.getKey();
             String type = entry.getValue();
+
+            // Viewファイル内で既に定義されている変数かチェック
+            if (isVariableDefinedInViewFile(position, varName)) {
+                Log.info("Variable already defined in view file, skipping: " + varName);
+                continue;
+            }
             
             LookupElementBuilder element = LookupElementBuilder.create("$" + varName)
                     .withTypeText(type)
@@ -177,5 +183,22 @@ public class ViewVariableCompletionProvider extends CompletionProvider<Completio
         }
 
         return variables;
+    }
+
+    /**
+     * Viewファイル内で指定された変数が既に定義されているかチェック
+     */
+    private boolean isVariableDefinedInViewFile(PsiElement element, String varName) {
+        Log.info("Checking if variable $" + varName + " is defined in view file");
+
+        // PSIを使って変数を検索
+        for (Variable variable : com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(element.getContainingFile(), Variable.class)) {
+            if (varName.equals(variable.getName())) {
+                return true;
+            }
+        }
+
+        Log.info("Variable $" + varName + " not found as defined in view file");
+        return false;
     }
 }
