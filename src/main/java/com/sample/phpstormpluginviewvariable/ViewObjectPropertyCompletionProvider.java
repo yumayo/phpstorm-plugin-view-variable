@@ -3,6 +3,9 @@ package com.sample.phpstormpluginviewvariable;
 import com.intellij.codeInsight.completion.CompletionParameters;
 import com.intellij.codeInsight.completion.CompletionProvider;
 import com.intellij.codeInsight.completion.CompletionResultSet;
+import com.intellij.codeInsight.completion.InsertHandler;
+import com.intellij.codeInsight.completion.InsertionContext;
+import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -377,7 +380,16 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                             LookupElementBuilder element = LookupElementBuilder.create(method.getName())
                                     .withIcon(PhpIcons.METHOD)
                                     .withTypeText(PhpTypeString.getSafeTypeString(method.getType()))
-                                    .withTailText("()");
+                                    .withTailText("()")
+                                    .withInsertHandler(new InsertHandler<LookupElement>() {
+                                        @Override
+                                        public void handleInsert(InsertionContext context, LookupElement item) {
+                                            // メソッド名の後に括弧を追加
+                                            context.getDocument().insertString(context.getTailOffset(), "()");
+                                            // カーソルを括弧の中に移動
+                                            context.getEditor().getCaretModel().moveToOffset(context.getTailOffset() - 1);
+                                        }
+                                    });
                             result.addElement(element);
                             Log.info("Added method: " + method.getName());
                         } else {
