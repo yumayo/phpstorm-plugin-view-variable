@@ -1,5 +1,8 @@
 package com.sample.phpstormpluginviewvariable.util;
 
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.diagnostic.Logger;
 
 /**
@@ -7,7 +10,10 @@ import com.intellij.openapi.diagnostic.Logger;
  * 毎回ロガーのインスタンスを作成する必要がなく、直接静的メソッドを呼び出して使用できる
  * 
  * デバッグモードの制御:
- * - システムプロパティ "phpstormpluginviewvariable.debug.enabled" が "true" の場合のみログを出力
+ * - システムプロパティ "phpstormpluginviewvariable.debug.enabled" が "true" の場合
+ * - IntelliJ IDEがInternal Modeで実行されている場合
+ * - IntelliJ IDEがEAP (Early Access Program) ビルドの場合
+ * のいずれかの条件を満たした場合のみログを出力
  */
 public class Log {
     
@@ -19,9 +25,22 @@ public class Log {
     private static boolean isDebugEnabled() {
         // システムプロパティでの明示的な設定をチェック
         String debugProperty = System.getProperty("phpstormpluginviewvariable.debug.enabled");
-        if (debugProperty != null) {
-            return "true".equalsIgnoreCase(debugProperty);
+        if (debugProperty != null && "true".equalsIgnoreCase(debugProperty)) {
+            return true;
         }
+
+        try {
+            // IntelliJ Platform APIを使用してデバッグ環境を検出
+            Application application = ApplicationManager.getApplication();
+            if (application != null) {
+                // Internal Modeまたは EAP ビルドの場合はデバッグモードを有効にする
+                return application.isInternal() || application.isEAP();
+            }
+        } catch (Exception e) {
+            // ApplicationManagerが利用できない場合（テスト環境等）は無視
+            // この例外は通常発生しないが、安全のためキャッチしておく
+        }
+
         return false;
     }
 
