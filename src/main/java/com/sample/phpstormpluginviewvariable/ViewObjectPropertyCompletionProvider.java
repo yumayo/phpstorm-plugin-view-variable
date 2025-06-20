@@ -15,6 +15,7 @@ import com.jetbrains.php.lang.psi.elements.*;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import com.sample.phpstormpluginviewvariable.model.ControllerFile;
 import com.sample.phpstormpluginviewvariable.util.Log;
+import com.sample.phpstormpluginviewvariable.util.PhpTypeString;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -51,7 +52,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
             return;
         }
         
-        Log.info("Variable type: " + getSafeTypeString(variableType));
+        Log.info("Variable type: " + PhpTypeString.getSafeTypeString(variableType));
         
         // 型からクラスを解決してプロパティ・メソッドを取得
         addPropertyAndMethodCompletions(variableType, result, position.getProject());
@@ -96,9 +97,9 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
         // 直接変数の型を取得してクリーンアップを試す
         PhpType directType = variable.getType();
         if (directType != null && !directType.isEmpty()) {
-            PhpType cleanedType = cleanPhpType(directType);
+            PhpType cleanedType = PhpTypeString.cleanPhpType(directType);
             if (cleanedType != null && !cleanedType.isEmpty()) {
-                Log.info("Using cleaned direct variable type: " + getSafeTypeString(cleanedType));
+                Log.info("Using cleaned direct variable type: " + PhpTypeString.getSafeTypeString(cleanedType));
                 return cleanedType;
             }
         }
@@ -186,13 +187,13 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
             Log.info("Trying to get type from ViewTypeProvider...");
             // ViewTypeProviderを使って型を解決
             arrayType = getTypeFromViewTypeProvider(arrayVariable, arrayVariableName);
-            Log.info("Array variable type from ViewTypeProvider: " + (arrayType != null ? getSafeTypeString(arrayType) : "null"));
+            Log.info("Array variable type from ViewTypeProvider: " + (arrayType != null ? PhpTypeString.getSafeTypeString(arrayType) : "null"));
             
             if (arrayType == null) {
                 Log.info("Trying to get type from current file context...");
                 // 最後の手段として現在のファイルコンテキストから取得
                 arrayType = arrayVariable.getType();
-                Log.info("Array variable type from context: " + (arrayType != null ? getSafeTypeString(arrayType) : "null"));
+                Log.info("Array variable type from context: " + (arrayType != null ? PhpTypeString.getSafeTypeString(arrayType) : "null"));
             }
         }
         
@@ -201,7 +202,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
             return null;
         }
         
-        Log.info("Array type: " + getSafeTypeString(arrayType));
+        Log.info("Array type: " + PhpTypeString.getSafeTypeString(arrayType));
         
         // 配列型から要素型を推論
         return getElementTypeFromArrayType(arrayType);
@@ -262,7 +263,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
             Log.info("Found matching setVar, value arg type: " + valueArg.getClass().getSimpleName());
             if (valueArg instanceof PhpExpression) {
                 PhpType type = ((PhpExpression) valueArg).getType();
-                Log.info("Value type: " + (type != null ? getSafeTypeString(type) : "null"));
+                Log.info("Value type: " + (type != null ? PhpTypeString.getSafeTypeString(type) : "null"));
                 return type;
             }
         }
@@ -280,7 +281,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
             
             // 変数の型を取得
             PhpType type = viewTypeProvider.getType(variable);
-            Log.info("ViewTypeProvider returned type: " + (type != null ? getSafeTypeString(type) : "null"));
+            Log.info("ViewTypeProvider returned type: " + (type != null ? PhpTypeString.getSafeTypeString(type) : "null"));
             
             return type;
         } catch (Exception e) {
@@ -319,11 +320,11 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
      * 型からプロパティとメソッドの補完候補を追加
      */
     private void addPropertyAndMethodCompletions(PhpType type, CompletionResultSet result, Project project) {
-        Log.info("addPropertyAndMethodCompletions called with type: " + getSafeTypeString(type));
+        Log.info("addPropertyAndMethodCompletions called with type: " + PhpTypeString.getSafeTypeString(type));
         
         // 型名からPhpClassを解決
         for (String typeName : type.getTypes()) {
-            String cleanTypeName = cleanTypeString(typeName);
+            String cleanTypeName = PhpTypeString.cleanTypeString(typeName);
             Log.info("Looking for class: " + cleanTypeName);
             
             try {
@@ -357,7 +358,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                         if (!field.getModifier().isPrivate()) { // privateでないプロパティのみ
                             LookupElementBuilder element = LookupElementBuilder.create(field.getName())
                                     .withIcon(PhpIcons.FIELD)
-                                    .withTypeText(getSafeTypeString(field.getType()))
+                                    .withTypeText(PhpTypeString.getSafeTypeString(field.getType()))
                                     .withTailText(" (property)");
                             result.addElement(element);
                             Log.info("Added property: " + field.getName());
@@ -375,7 +376,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                         if (!method.getModifier().isPrivate() && !method.getName().startsWith("__")) {
                             LookupElementBuilder element = LookupElementBuilder.create(method.getName())
                                     .withIcon(PhpIcons.METHOD)
-                                    .withTypeText(getSafeTypeString(method.getType()))
+                                    .withTypeText(PhpTypeString.getSafeTypeString(method.getType()))
                                     .withTailText("()");
                             result.addElement(element);
                             Log.info("Added method: " + method.getName());
@@ -391,137 +392,5 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
         }
         
         Log.info("addPropertyAndMethodCompletions completed");
-    }
-    
-    /**
-     * PhpTypeから安全な文字列表現を取得
-     */
-    private String getSafeTypeString(PhpType type) {
-        try {
-            String resolved = type.toStringResolved();
-            if (resolved != null && !resolved.isEmpty() && isValidString(resolved)) {
-                return cleanTypeString(resolved);
-            }
-        } catch (Exception e) {
-            Log.info("Error getting resolved type string: " + e.getMessage());
-        }
-
-        try {
-            StringBuilder sb = new StringBuilder();
-            boolean first = true;
-            for (String typeStr : type.getTypes()) {
-                if (typeStr != null && isValidString(typeStr)) {
-                    if (!first) {
-                        sb.append("|");
-                    }
-                    sb.append(cleanTypeString(typeStr));
-                    first = false;
-                }
-            }
-            if (sb.length() > 0) {
-                return sb.toString();
-            }
-        } catch (Exception e) {
-            Log.info("Error getting individual types: " + e.getMessage());
-        }
-
-        return "mixed";
-    }
-    
-    /**
-     * 文字列が有効な文字のみを含むかチェック
-     */
-    private boolean isValidString(String str) {
-        if (str == null || str.isEmpty()) {
-            return false;
-        }
-        
-        for (char c : str.toCharArray()) {
-            if (c < 32 || c > 126) {
-                if (c != '|' && c != '?' && c != '[' && c != ']' && c != '\\') {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-    
-    /**
-     * 型文字列をクリーンアップ（先頭のバックスラッシュを除去）
-     */
-    private String cleanTypeString(String typeStr) {
-        if (typeStr == null || typeStr.isEmpty()) {
-            return typeStr;
-        }
-        
-        if (typeStr.startsWith("\\")) {
-            typeStr = typeStr.substring(1);
-        }
-        
-        if (typeStr.contains("|")) {
-            String[] parts = typeStr.split("\\|");
-            StringBuilder cleaned = new StringBuilder();
-            for (int i = 0; i < parts.length; i++) {
-                if (i > 0) {
-                    cleaned.append("|");
-                }
-                String part = parts[i].trim();
-                if (part.startsWith("\\")) {
-                    part = part.substring(1);
-                }
-                cleaned.append(part);
-            }
-            return cleaned.toString();
-        }
-        
-        return typeStr;
-    }
-    
-    /**
-     * PhpTypeから内部プレフィックス（#C, #V, #顶など）を除去してクリーンな型を作成
-     */
-    private PhpType cleanPhpType(PhpType type) {
-        if (type == null || type.isEmpty()) {
-            return null;
-        }
-        
-        PhpType.PhpTypeBuilder builder = PhpType.builder();
-        boolean hasValidType = false;
-        
-        for (String typeName : type.getTypes()) {
-            Log.info("Processing type for cleaning: " + typeName);
-            
-            // #C プレフィックス（クラス型）を除去
-            if (typeName.startsWith("#C")) {
-                String cleanType = typeName.substring(2);
-                if (!cleanType.isEmpty()) {
-                    builder.add(cleanType);
-                    hasValidType = true;
-                    Log.info("Cleaned class type: " + cleanType);
-                }
-            }
-            // #V プレフィックス（変数型）をスキップ
-            else if (typeName.startsWith("#V")) {
-                Log.info("Skipping variable type: " + typeName);
-            }
-            // その他の特殊プレフィックスをスキップ
-            else if (typeName.startsWith("#")) {
-                Log.info("Skipping special type: " + typeName);
-            }
-            // 通常の型名
-            else if (!typeName.equals("?") && !typeName.isEmpty()) {
-                builder.add(cleanTypeString(typeName));
-                hasValidType = true;
-                Log.info("Added normal type: " + cleanTypeString(typeName));
-            }
-        }
-        
-        if (hasValidType) {
-            PhpType result = builder.build();
-            Log.info("Created cleaned type: " + getSafeTypeString(result));
-            return result;
-        }
-        
-        return null;
     }
 }
