@@ -85,11 +85,15 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
      * コントローラーから変数の型を取得
      */
     private PhpType getVariableTypeFromController(Variable variable, String variableName) {
+        Log.info("getVariableTypeFromController called for variable: " + variableName);
+        
         // まずforeachループ内の変数かチェック
         PhpType foreachType = getForeachVariableType(variable, variableName);
         if (foreachType != null) {
+            Log.info("Found foreach type, returning: " + PhpTypeString.getSafeTypeString(foreachType));
             return foreachType;
         }
+        Log.info("No foreach type found");
         
         // 直接変数の型を取得してクリーンアップを試す
         PhpType directType = variable.getType();
@@ -100,48 +104,133 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                 return cleanedType;
             }
         }
+        Log.info("No direct variable type found");
         
         PsiFile viewFile = variable.getContainingFile();
         if (viewFile == null) {
+            Log.info("ViewFile is null, returning null");
             return null;
         }
         
         VirtualFile viewVirtualFile = viewFile.getVirtualFile();
         if (viewVirtualFile == null) {
-            return null;
+            Log.info("ViewVirtualFile is null, trying alternative approach");
+            // VirtualFileが取得できない場合の代替手段
+            String fileName = viewFile.getName();
+            Log.info("ViewFile name: " + fileName);
+            
+            // ファイルパスを取得する別の方法を試す
+            String filePath = null;
+            try {
+                // ViewFileがPsiFileBaseの場合、getViewProviderからVirtualFileを取得
+                if (viewFile.getViewProvider() != null && viewFile.getViewProvider().getVirtualFile() != null) {
+                    viewVirtualFile = viewFile.getViewProvider().getVirtualFile();
+                    Log.info("Got VirtualFile from ViewProvider: " + viewVirtualFile.getPath());
+                    
+                    // パスが不完全（フルパスでない）場合の対処
+                    String vfPath = viewVirtualFile.getPath();
+                    if (vfPath.startsWith("/") && !vfPath.contains("/views/")) {
+                        Log.info("VirtualFile path seems incomplete, trying to get full path");
+                        
+                        // プロジェクトのベースパスと組み合わせてフルパスを作成
+                        Project project = variable.getProject();
+                        String basePath = project.getBasePath();
+                        if (basePath != null) {
+                            Log.info("Searching for file with pattern: **/" + fileName + " in project: " + basePath);
+                            
+                            // LocalFileSystemを使って実際のファイルを検索
+                            try {
+                                com.intellij.openapi.vfs.VirtualFile projectRoot = com.intellij.openapi.vfs.LocalFileSystem.getInstance().findFileByPath(basePath);
+                                if (projectRoot != null) {
+                                    Log.info("Project root found: " + projectRoot.getPath());
+                                    
+                                    // シンプルな再帰検索
+                                    java.util.List<com.intellij.openapi.vfs.VirtualFile> foundFiles = new java.util.ArrayList<>();
+                                    searchForFile(projectRoot, fileName, foundFiles);
+                                    
+                                    Log.info("Found " + foundFiles.size() + " files with name: " + fileName);
+                                    
+                                    for (com.intellij.openapi.vfs.VirtualFile foundFile : foundFiles) {
+                                        String foundPath = foundFile.getPath();
+                                        Log.info("Found file: " + foundPath);
+                                        if (foundPath.contains("/views/")) {
+                                            Log.info("Using view file: " + foundPath);
+                                            viewVirtualFile = foundFile;
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    Log.info("Project root not found for path: " + basePath);
+                                }
+                            } catch (Exception searchException) {
+                                Log.info("Error searching for file: " + searchException.getMessage());
+                            }
+                        }
+                    }
+                } else {
+                    // 最後の手段として、ファイル名からパスを推測
+                    Log.info("Cannot get VirtualFile, using filename only");
+                    // この場合はControllerFile.getMethodReferencesを呼び出せないので、
+                    // 代替手段が必要
+                    Log.info("Cannot proceed without VirtualFile, returning null");
+                    return null;
+                }
+            } catch (Exception e) {
+                Log.info("Error getting alternative file path: " + e.getMessage());
+                return null;
+            }
         }
         
         Project project = variable.getProject();
+        Log.info("Project base path: " + (project.getBasePath() != null ? project.getBasePath() : "null"));
+        Log.info("Final VirtualFile path: " + viewVirtualFile.getPath());
+        Log.info("VirtualFile name: " + viewVirtualFile.getName());
+        Log.info("VirtualFile parent: " + (viewVirtualFile.getParent() != null ? viewVirtualFile.getParent().getPath() : "null"));
         
         // コントローラーのsetVar呼び出しを取得
         Collection<MethodReference> methodRefs = ControllerFile.getMethodReferences(viewVirtualFile, project);
+        Log.info("Found " + methodRefs.size() + " method references from controller");
         
         for (MethodReference methodRef : methodRefs) {
+            Log.info("Processing method reference: " + methodRef.getName());
             if (!"setVar".equals(methodRef.getName())) {
+                Log.info("Method is not setVar, continuing");
                 continue;
             }
             
             PsiElement[] args = methodRef.getParameters();
+            Log.info("setVar has " + args.length + " arguments");
             if (args.length < 2) {
+                Log.info("setVar has less than 2 arguments, continuing");
                 continue;
             }
             
             if (!(args[0] instanceof StringLiteralExpression)) {
+                Log.info("First argument is not StringLiteralExpression, continuing");
                 continue;
             }
             
             StringLiteralExpression keyArg = (StringLiteralExpression) args[0];
-            if (!variableName.equals(keyArg.getContents())) {
+            String keyValue = keyArg.getContents();
+            Log.info("setVar key: '" + keyValue + "', looking for: '" + variableName + "'");
+            if (!variableName.equals(keyValue)) {
+                Log.info("Variable name does not match, continuing");
                 continue;
             }
             
             // 第二引数の型を取得
             PsiElement valueArg = args[1];
+            Log.info("Found matching setVar, value arg type: " + valueArg.getClass().getSimpleName());
             if (valueArg instanceof PhpExpression) {
-                return ((PhpExpression) valueArg).getType();
+                PhpType type = ((PhpExpression) valueArg).getType();
+                Log.info("Returning type: " + (type != null ? PhpTypeString.getSafeTypeString(type) : "null"));
+                return type;
+            } else {
+                Log.info("Value argument is not PhpExpression, continuing");
             }
         }
         
+        Log.info("No matching setVar found, returning null");
         return null;
     }
     
@@ -397,5 +486,24 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
         }
         
         Log.info("addPropertyAndMethodCompletions completed");
+    }
+    
+    /**
+     * ファイルを再帰的に検索するヘルパーメソッド
+     */
+    private void searchForFile(com.intellij.openapi.vfs.VirtualFile directory, String fileName, java.util.List<com.intellij.openapi.vfs.VirtualFile> results) {
+        try {
+            if (directory.isDirectory()) {
+                for (com.intellij.openapi.vfs.VirtualFile child : directory.getChildren()) {
+                    if (child.isDirectory()) {
+                        searchForFile(child, fileName, results);
+                    } else if (fileName.equals(child.getName())) {
+                        results.add(child);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.info("Error searching in directory " + directory.getPath() + ": " + e.getMessage());
+        }
     }
 }
