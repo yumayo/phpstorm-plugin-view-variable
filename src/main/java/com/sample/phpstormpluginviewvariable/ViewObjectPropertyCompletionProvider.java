@@ -85,12 +85,6 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
      * コントローラーから変数の型を取得
      */
     private PhpType getVariableTypeFromController(Variable variable, String variableName) {
-        // デバッグ用：quest変数の場合は固定で\App\modules\GmTool\Model\Questを返す
-        if ("quest".equals(variableName)) {
-            Log.info("Debug: Fixed type for quest variable");
-            return PhpType.builder().add("\\App\\Modules\\GmTool\\Model\\Quest").build();
-        }
-        
         // まずforeachループ内の変数かチェック
         PhpType foreachType = getForeachVariableType(variable, variableName);
         if (foreachType != null) {
@@ -368,7 +362,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                             Log.info("Skipped private field: " + field.getName());
                         }
                     }
-                    
+
                     // メソッドを追加
                     Method[] methods = phpClass.getOwnMethods();
                     Log.info("Class has " + methods.length + " own methods");
