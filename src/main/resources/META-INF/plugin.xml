@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.sample.phpstormpluginviewvariable</id>
     <name>Controller-View Resolver</name>
-    <vendor>Your Company</vendor>
+    <vendor>y_hoshina</vendor>
     <description>
         <![CDATA[
         Resolves variables set in Controller and used in View files.
