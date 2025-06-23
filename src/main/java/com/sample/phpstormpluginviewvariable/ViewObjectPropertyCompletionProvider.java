@@ -147,7 +147,16 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
             Log.info("Found matching setVar, value arg type: " + valueArg.getClass().getSimpleName());
             if (valueArg instanceof PhpExpression) {
                 PhpType type = ((PhpExpression) valueArg).getType();
-                Log.info("Returning type: " + (type != null ? PhpTypeString.getSafeTypeString(type) : "null"));
+                Log.info("Original type: " + (type != null ? PhpTypeString.getSafeTypeString(type) : "null"));
+                
+                // メソッド参照の場合、実際の戻り値の型を解決
+                PhpType resolvedType = resolveMethodReturnType(type, valueArg);
+                if (resolvedType != null && !resolvedType.isEmpty()) {
+                    Log.info("Resolved type: " + PhpTypeString.getSafeTypeString(resolvedType));
+                    return resolvedType;
+                }
+                
+                Log.info("Returning original type: " + (type != null ? PhpTypeString.getSafeTypeString(type) : "null"));
                 return type;
             } else {
                 Log.info("Value argument is not PhpExpression, continuing");
@@ -164,6 +173,57 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
         
         Log.info("No matching setVar found, returning null");
         return null;
+    }
+    
+    /**
+     * メソッド参照の戻り値の型を解決
+     */
+    private PhpType resolveMethodReturnType(PhpType originalType, PsiElement valueArg) {
+        Log.info("resolveMethodReturnType called");
+        
+        if (originalType == null || originalType.isEmpty()) {
+            Log.info("Original type is null or empty");
+            return null;
+        }
+        
+        // プリミティブ型の場合はそのまま返す
+        if (originalType.getTypes().stream().allMatch(PhpType::isPrimitiveType)) {
+            Log.info("Type is primitive, returning as is");
+            return originalType;
+        }
+        
+        // メソッド参照の場合、実際のメソッドを解決して戻り値の型を取得
+        if (valueArg instanceof MethodReference) {
+            MethodReference methodRef = (MethodReference) valueArg;
+            Log.info("Resolving method reference: " + methodRef.getName());
+            
+            // メソッドの解決を試行
+            try {
+                PsiElement resolved = methodRef.resolve();
+                if (resolved instanceof Method) {
+                    Method method = (Method) resolved;
+                    PhpType returnType = method.getType();
+                    Log.info("Method return type: " + (returnType != null ? PhpTypeString.getSafeTypeString(returnType) : "null"));
+                    return returnType;
+                } else {
+                    Log.info("Resolved element is not a Method: " + (resolved != null ? resolved.getClass().getSimpleName() : "null"));
+                }
+            } catch (Exception e) {
+                Log.info("Error resolving method: " + e.getMessage());
+            }
+        }
+        
+        // 変数参照の場合、その変数の型を取得
+        if (valueArg instanceof Variable) {
+            Variable var = (Variable) valueArg;
+            Log.info("Resolving variable: " + var.getName());
+            PhpType varType = var.getType();
+            Log.info("Variable type: " + (varType != null ? PhpTypeString.getSafeTypeString(varType) : "null"));
+            return varType;
+        }
+        
+        Log.info("Could not resolve method return type, returning original");
+        return originalType;
     }
     
     /**
@@ -223,7 +283,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
         Log.info("Array type: " + PhpTypeString.getSafeTypeString(arrayType));
 
         // 配列型から要素型を推論
-        return getElementTypeFromArrayType(arrayType);
+        return getElementTypeFromArrayType(arrayType, variable.getProject());
     }
 
     /**
@@ -248,7 +308,13 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
     /**
      * 配列型から要素型を推論
      */
-    private PhpType getElementTypeFromArrayType(PhpType arrayType) {
+    private PhpType getElementTypeFromArrayType(PhpType arrayType, Project project) {
+        Log.info("getElementTypeFromArrayType called with: " + PhpTypeString.getSafeTypeString(arrayType));
+        
+        // PhpTypeのビルトインメソッドを使用して配列の要素型を取得を試行
+        // getArrayElementType()が存在しない場合があるため、手動解析にフォールバック
+        
+        // フォールバック: 手動で型文字列を解析
         for (String typeName : arrayType.getTypes()) {
             Log.info("Processing array type: " + typeName);
 
@@ -265,12 +331,155 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                 Log.info("Extracted element type from array<>: " + elementTypeName);
                 return PhpType.builder().add(elementTypeName).build();
             }
+
+            // array|Quest[] のような複合型を処理
+            if (typeName.contains("|")) {
+                String[] types = typeName.split("\\|");
+                for (String type : types) {
+                    if (type.endsWith("[]")) {
+                        String elementTypeName = type.substring(0, type.length() - 2);
+                        Log.info("Extracted element type from union: " + elementTypeName);
+                        return PhpType.builder().add(elementTypeName).build();
+                    }
+                }
+            }
+
+            // メソッド参照型: #M#C\App\modules\GmTool\Model\Episode.getQuests
+            // PhpIndexを使用してメソッドを直接解決
+            if (typeName.startsWith("#M#C\\")) {
+                Log.info("Processing method reference type: " + typeName);
+                PhpType resolvedType = resolveMethodReferenceType(typeName, project);
+                if (resolvedType != null) {
+                    Log.info("Resolved method reference to type: " + PhpTypeString.getSafeTypeString(resolvedType));
+                    // 解決された型から直接要素型を抽出（無限再帰を避けるため、メソッド参照ではない型として処理）
+                    for (String resolvedTypeName : resolvedType.getTypes()) {
+                        Log.info("Processing resolved type: " + resolvedTypeName);
+                        
+                        // Quest[] -> Quest に変換
+                        if (resolvedTypeName.endsWith("[]")) {
+                            String elementTypeName = resolvedTypeName.substring(0, resolvedTypeName.length() - 2);
+                            Log.info("Extracted element type from resolved array type: " + elementTypeName);
+                            return PhpType.builder().add(elementTypeName).build();
+                        }
+                        
+                        // array<Quest> -> Quest に変換
+                        if (resolvedTypeName.startsWith("array<") && resolvedTypeName.endsWith(">")) {
+                            String elementTypeName = resolvedTypeName.substring(6, resolvedTypeName.length() - 1);
+                            Log.info("Extracted element type from resolved array<> type: " + elementTypeName);
+                            return PhpType.builder().add(elementTypeName).build();
+                        }
+                        
+                        // 通常のクラス名の場合、そのまま返す（単一要素として扱う）
+                        if (resolvedTypeName.contains("\\") && !resolvedTypeName.startsWith("#")) {
+                            Log.info("Treating resolved type as element type: " + resolvedTypeName);
+                            return PhpType.builder().add(resolvedTypeName).build();
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // 関数シグネチャ型の処理
+            if (typeName.startsWith("#π(") && typeName.contains(")")) {
+                int startIndex = 3; // "#π("をスキップ
+                int endIndex = typeName.indexOf(")", startIndex);
+                if (endIndex > startIndex) {
+                    String innerType = typeName.substring(startIndex, endIndex);
+                    Log.info("Extracted inner type from function signature: " + innerType);
+                    // 内部の型を再帰的に処理
+                    PhpType innerPhpType = PhpType.builder().add(innerType).build();
+                    PhpType result = getElementTypeFromArrayType(innerPhpType, project);
+                    if (result != null) {
+                        return result;
+                    }
+                }
+            }
+
+            // その他の複雑な型フォーマットからクラス名を抽出
+            if (typeName.contains("\\") && !typeName.startsWith("#")) {
+                // シンプルなクラス名の場合、この型の配列として扱う
+                Log.info("Treating as array element type: " + typeName);
+                return PhpType.builder().add(typeName).build();
+            }
         }
 
         Log.info("Could not extract element type from array type");
         return null;
     }
 
+    /**
+     * メソッド参照型を解決してメソッドの戻り値型を取得
+     * 例: #M#C\App\modules\GmTool\Model\Episode.getQuests -> Quest[]
+     */
+    private PhpType resolveMethodReferenceType(String methodReferenceType, Project project) {
+        Log.info("resolveMethodReferenceType called with: " + methodReferenceType);
+        
+        if (!methodReferenceType.startsWith("#M#C\\")) {
+            Log.info("Not a method reference type");
+            return null;
+        }
+        
+        // #M#C\App\modules\GmTool\Model\Episode.getQuests から クラス名とメソッド名を抽出
+        String methodRef = methodReferenceType.substring(4); // "#M#C\"を除去
+        if (!methodRef.contains(".")) {
+            Log.info("Invalid method reference format");
+            return null;
+        }
+        
+        String className = methodRef.substring(0, methodRef.lastIndexOf("."));
+        String methodName = methodRef.substring(methodRef.lastIndexOf(".") + 1);
+        Log.info("Extracted class: " + className + ", method: " + methodName);
+        
+        try {
+            // PhpIndexを使用してクラスを検索
+            Collection<PhpClass> classes = com.jetbrains.php.PhpIndex.getInstance(project)
+                    .getClassesByName(className.substring(className.lastIndexOf("\\") + 1));
+            
+            Log.info("Found " + classes.size() + " classes for short name");
+            
+            for (PhpClass phpClass : classes) {
+                Log.info("Checking class: " + phpClass.getFQN());
+                if (phpClass.getFQN().equals(className)) {
+                    Log.info("Found matching class: " + className);
+                    
+                    // メソッドを検索
+                    Method method = phpClass.findMethodByName(methodName);
+                    if (method != null) {
+                        PhpType returnType = method.getType();
+                        Log.info("Found method " + methodName + " with return type: " + 
+                               (returnType != null ? PhpTypeString.getSafeTypeString(returnType) : "null"));
+                        return returnType;
+                    } else {
+                        Log.info("Method " + methodName + " not found in class " + className);
+                    }
+                }
+            }
+            
+            // 短縮名で見つからない場合、FQNで直接検索
+            if (classes.isEmpty()) {
+                Log.info("Trying FQN search for: " + className);
+                classes = com.jetbrains.php.PhpIndex.getInstance(project).getClassesByFQN(className);
+                Log.info("Found " + classes.size() + " classes by FQN");
+                
+                for (PhpClass phpClass : classes) {
+                    Method method = phpClass.findMethodByName(methodName);
+                    if (method != null) {
+                        PhpType returnType = method.getType();
+                        Log.info("Found method " + methodName + " with return type: " + 
+                               (returnType != null ? PhpTypeString.getSafeTypeString(returnType) : "null"));
+                        return returnType;
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.info("Error resolving method reference: " + e.getMessage());
+        }
+        
+        Log.info("Could not resolve method reference: " + methodReferenceType);
+        return null;
+    }
+    
     /**
      * 型からプロパティとメソッドの補完候補を追加
      */
