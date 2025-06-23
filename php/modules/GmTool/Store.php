@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Cli;
+namespace App\Modules\GmTool;
 
 class Store
 {

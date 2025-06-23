@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Modules\Cli\Controller;
+namespace App\Modules\GmTool\Controller;
 
-use App\Modules\Cli\Foundation\Controller;
+use App\Modules\GmTool\Foundation\Controller;
 
 class SampleController extends Controller
 {
