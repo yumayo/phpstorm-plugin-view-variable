@@ -311,9 +311,6 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
     private PhpType getElementTypeFromArrayType(PhpType arrayType, Project project) {
         Log.info("getElementTypeFromArrayType called with: " + PhpTypeString.getSafeTypeString(arrayType));
         
-        // PhpTypeのビルトインメソッドを使用して配列の要素型を取得を試行
-        // getArrayElementType()が存在しない場合があるため、手動解析にフォールバック
-        
         // フォールバック: 手動で型文字列を解析
         for (String typeName : arrayType.getTypes()) {
             Log.info("Processing array type: " + typeName);
@@ -519,7 +516,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                     
                     for (Field field : fields) {
                         Log.info("Processing field: " + field.getName() + " (modifier: " + field.getModifier() + ")");
-                        if (!field.getModifier().isPrivate()) { // privateでないプロパティのみ
+                        if (field.getModifier().isPublic()) {
                             LookupElementBuilder element = LookupElementBuilder.create(field.getName())
                                     .withIcon(PhpIcons.FIELD)
                                     .withTypeText(PhpTypeString.getSafeTypeString(field.getType()));
@@ -536,7 +533,7 @@ public class ViewObjectPropertyCompletionProvider extends CompletionProvider<Com
                     
                     for (Method method : methods) {
                         Log.info("Processing method: " + method.getName() + " (modifier: " + method.getModifier() + ")");
-                        if (!method.getModifier().isPrivate() && !method.getName().startsWith("__")) {
+                        if (method.getModifier().isPublic() && !method.getName().startsWith("__")) {
                             LookupElementBuilder element = LookupElementBuilder.create(method.getName())
                                     .withIcon(PhpIcons.METHOD)
                                     .withTypeText(PhpTypeString.getSafeTypeString(method.getType()))
